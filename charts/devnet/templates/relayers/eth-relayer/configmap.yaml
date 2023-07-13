@@ -1,35 +1,11 @@
+{{- range $relayer := .Values.relayers }}
+{{- if eq $relayer.type "eth-relayer" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: setup-scripts
+  name: "{{ $relayer.type }}-{{ $relayer.name }}"
 data:
-  {{- range $path, $_ := .Files.Glob "scripts/*.sh" }}
-  {{ base $path }}: |-
-    {{- $.Files.Get $path | nindent 4 }}
-  {{- end }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: keys
-data:
-  {{- range $path, $_ := .Files.Glob "configs/keys.json" }}
-  {{ base $path }}: |-
-    {{- $.Files.Get $path | nindent 4}}
-  {{- end }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: altair
-data:
-  altair.json: |
-    {
-      "sc_address": "0x0359d4C7309d1F171f01630807A68C367a05e1fb",
-      "abi_path": "/tmp/abi.json"
-    }
-
   abi.json: |
     [
       {
@@ -1139,3 +1115,5 @@ data:
         "type": "function"}
     ]
 ---
+{{- end }}
+{{- end }}

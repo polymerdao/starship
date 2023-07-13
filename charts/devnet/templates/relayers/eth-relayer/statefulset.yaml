@@ -1,0 +1,150 @@
+{{- range $relayer := .Values.relayers }}
+{{- if eq $relayer.type "eth-relayer" }}
+{{ $defaultRelayer := get $.Values.defaultRelayers $relayer.type }}
+{{ $initParams := dict "chains" $relayer.chains "port" $.Values.exposer.ports.rest "context" $ }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $relayer.type }}-{{ $relayer.name }}
+spec:
+  serviceName: {{ $relayer.type }}-{{ $relayer.name }}
+  replicas: {{ $relayer.replicas }}
+  podManagementPolicy: "Parallel"
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: relayer
+      app.kubernetes.io/type: {{ $relayer.type }}
+      app.kubernetes.io/name: {{ $relayer.type }}-{{ $relayer.name }}
+  template:
+    metadata:
+      annotations:
+        quality: release
+        role: api-gateway
+        sla: high
+        tier: gateway
+      labels:
+        app.kubernetes.io/instance: relayer
+        app.kubernetes.io/type: {{ $relayer.type }}
+        app.kubernetes.io/name: {{ $relayer.type }}-{{ $relayer.name }}
+        app.kubernetes.io/version: {{ $.Chart.AppVersion }}
+    spec:
+      initContainers:
+        {{/* Waits for all upstream chains before starting relayer, vai init containers */}}
+{{/*        {{- include "devnet.init.wait" $initParams | indent 8 }}*/}}
+        - name: init-relayer
+          image: {{ $relayer.image | default $defaultRelayer.image }}
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command:
+            - sh
+            - "-c"
+            - |
+              RLY_INDEX=${HOSTNAME##*-}
+              echo "Relayer Index: $RLY_INDEX"
+
+              apk add curl jq
+
+              while [ $(curl -sw '%{http_code}' http://polymer-genesis.$NAMESPACE.svc.cluster.local:8081/node_id -o /dev/null) -ne 200 ]; do
+                echo "Genesis validator does not seem to be ready. Waiting for it to start..."
+                sleep 10;
+              done
+              echo "Ready to start"
+
+              while true
+              do
+                epoch=$(curl -s http://prysm.$NAMESPACE.svc.cluster.local:3500/eth/v1/beacon/states/head/finality_checkpoints | jq -r '.data.finalized.epoch')
+                echo "Finalized epoch: $epoch"
+
+                if [ "$epoch" -gt 0 ]; then
+                  break
+                fi
+
+                sleep 5
+              done
+
+              echo "Entered PoS stage"
+          volumeMounts:
+            - mountPath: /root
+              name: relayer
+            - mountPath: /configs
+              name: relayer-config
+          resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
+      containers:
+        - name: relayer
+          image: {{ $relayer.image | default $defaultRelayer.image }}
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: KEYS_CONFIG
+              value: /keys/keys.json
+          command:
+            - sh
+            - "-c"
+            - |
+              RLY_INDEX=${HOSTNAME##*-}
+              echo "Relayer Index: $RLY_INDEX"
+
+              apk add curl jq
+
+              MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+
+              PRYSM_IP=$(nslookup prysm.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
+              PRYSM_IP=$(echo "$PRYSM_IP" | xargs)
+
+
+              ping -c 1 polymer-genesis.$NAMESPACE.svc.cluster.local
+              POLYMER_IP=$(nslookup polymer-genesis.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
+              POLYMER_IP=$(echo "$POLYMER_IP" | xargs)
+              echo "Prysm IP: $PRYSM_IP"
+              echo "Polymer IP: $POLYMER_IP"
+
+              /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
+              --execution-host "http://$PRYSM_IP:8545" \
+              --ibc-core-address "0x0359d4C7309d1F171f01630807A68C367a05e1fb" \
+              --ibc-core-abi /configs/abi.json \
+              --router-host "http://$POLYMER_IP:9090" \
+              --polymer-rpc-addr "http://$POLYMER_IP:26657" \
+              --polymer-account-mnemonic "$MNEMONIC" \
+              --local-dev-net --create-client-mode
+
+              /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
+              --execution-host "http://$PRYSM_IP:8545" \
+              --ibc-core-address "0x0359d4C7309d1F171f01630807A68C367a05e1fb" \
+              --ibc-core-abi /configs/abi.json \
+              --router-host "http://$POLYMER_IP:9090" \
+              --polymer-rpc-addr "http://$POLYMER_IP:26657" \
+              --polymer-account-mnemonic "$MNEMONIC" \
+              --local-dev-net
+
+          resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /root
+              name: relayer
+            - mountPath: /keys
+              name: keys
+            - mountPath: /configs
+              name: relayer-config
+      volumes:
+        - name: relayer
+          emptyDir: { }
+        - name: keys
+          configMap:
+            name: keys
+        - name: relayer-config
+          configMap:
+            name: "{{ $relayer.type }}-{{ $relayer.name }}"
+---
+{{- end }}
+{{- end }}
