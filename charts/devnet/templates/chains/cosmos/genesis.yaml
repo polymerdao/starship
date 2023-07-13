@@ -136,6 +136,12 @@ spec:
             - bash
             - "-c"
             - |
+
+              # light client specific  logic
+              mkdir -p /tmp
+              cp /altair/abi.json /tmp
+              cp /altair/altair.json /tmp
+
               {{- if $toBuild }}
               /usr/bin/cosmovisor start
               {{- else }}
@@ -149,6 +155,8 @@ spec:
               name: addresses
             - mountPath: /scripts
               name: scripts
+            - mountPath: /altair
+              name: altair
           {{- if $.Values.collector.enabled }}
           lifecycle:
             preStop:
@@ -253,6 +261,9 @@ spec:
         - name: scripts
           configMap:
             name: setup-scripts
+        - name: altair
+          configMap:
+            name: altair
 ---
 {{- end }}
 {{- end }}
