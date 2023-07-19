@@ -1,0 +1,14 @@
+{{- range $relayer := .Values.relayers }}
+{{- if eq $relayer.type "vibc-relayer" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ $relayer.type }}-{{ $relayer.name }}"
+data:
+  abi.json: |
+    [
+    ]
+---
+{{- end }}
+{{- end }}
