@@ -31,9 +31,73 @@ spec:
         app.kubernetes.io/version: {{ $.Chart.AppVersion }}
     spec:
       initContainers:
-        {{/* Waits for all upstream chains before starting relayer, vai init containers */}}
-{{/*        {{- include "devnet.init.wait" $initParams | indent 8 }}*/}}
-        - name: init-relayer
+        - name: wait-for-eth
+          image: {{ $relayer.image | default $defaultRelayer.image }}
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command:
+            - sh
+            - "-c"
+            - |
+              RLY_INDEX=${HOSTNAME##*-}
+              echo "Relayer Index: $RLY_INDEX"
+
+              apk add curl jq
+
+              while true
+              do
+                epoch=$(curl -s http://prysm.$NAMESPACE.svc.cluster.local:3500/eth/v1/beacon/states/head/finality_checkpoints | jq -r '.data.finalized.epoch')
+                echo "Finalized epoch: $epoch"
+
+                if [ "$epoch" -gt 0 ]; then
+                  break
+                fi
+
+                sleep 5
+              done
+
+              echo "Entered PoS stage"
+        - name: deploy-contracts
+          image: {{ $relayer.image | default $defaultRelayer.image }}
+          imagePullPolicy: Always
+          env:
+            - name: KEYS_CONFIG
+              value: /keys/keys.json
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command:
+            - sh
+            - "-c"
+            - |
+              RLY_INDEX=${HOSTNAME##*-}
+              echo "Relayer Index: $RLY_INDEX"
+
+              apk add curl jq nodejs npm
+              MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+              echo "Mnemonic: $MNEMONIC"
+
+              cd /relayer-storage
+              npm install --save ethers@5 fs commander
+              cp /contracts/* .
+              node deploy.js -m "$MNEMONIC" -c Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545"
+          workingDir: /relayer-storage
+          volumeMounts:
+            - mountPath: /root
+              name: relayer
+            - mountPath: /keys
+              name: keys
+            - mountPath: /contracts
+              name: contracts
+            - name: relayer-storage
+              mountPath: /relayer-storage
+          resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
+        - name: wait-for-polymer
           image: {{ $relayer.image | default $defaultRelayer.image }}
           imagePullPolicy: Always
           env:
@@ -56,19 +120,6 @@ spec:
               done
               echo "Ready to start"
 
-              while true
-              do
-                epoch=$(curl -s http://prysm.$NAMESPACE.svc.cluster.local:3500/eth/v1/beacon/states/head/finality_checkpoints | jq -r '.data.finalized.epoch')
-                echo "Finalized epoch: $epoch"
-
-                if [ "$epoch" -gt 0 ]; then
-                  break
-                fi
-
-                sleep 5
-              done
-
-              echo "Entered PoS stage"
           volumeMounts:
             - mountPath: /root
               name: relayer
@@ -100,8 +151,6 @@ spec:
               PRYSM_IP=$(nslookup prysm.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               PRYSM_IP=$(echo "$PRYSM_IP" | xargs)
 
-
-              ping -c 1 polymer-genesis.$NAMESPACE.svc.cluster.local
               POLYMER_IP=$(nslookup polymer-genesis.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               POLYMER_IP=$(echo "$POLYMER_IP" | xargs)
               echo "Prysm IP: $PRYSM_IP"
@@ -142,9 +191,23 @@ spec:
         - name: keys
           configMap:
             name: keys
+        - name: contracts
+          configMap:
+            name: contracts
         - name: relayer-config
           configMap:
             name: "{{ $relayer.type }}-{{ $relayer.name }}"
+  volumeClaimTemplates:
+    - metadata:
+        name: relayer-storage
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: hostpath
+        resources:
+          requests:
+            storage: 10Mi
+
+
 ---
 {{- end }}
 {{- end }}
