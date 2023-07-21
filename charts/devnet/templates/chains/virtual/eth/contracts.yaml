@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: contracts
+data:
+  {{- range $path, $_ := .Files.Glob "contracts/*" }}
+  {{ base $path }}: |-
+    {{- $.Files.Get $path | nindent 4}}
+  {{- end }}
