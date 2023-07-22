@@ -6,7 +6,8 @@ program
     .option('-k, --private-key <key>', 'Your private key')
     .option('-m, --mnemonic <mnemonic>', 'Your mnemonic')
     .requiredOption('-c, --contract-file <file>', 'The path to the contract artifact JSON file')
-    .requiredOption('-r, --rpc <endpoint>', 'The RPC endpoint for the Ethereum network');
+    .requiredOption('-r, --rpc <endpoint>', 'The RPC endpoint for the Ethereum network')
+    .option('-a, --args [args]', 'Optional arguments for the contract constructor, comma-separated');
 
 program.parse(process.argv);
 
@@ -31,11 +32,11 @@ program.parse(process.argv);
     const contractFile = opts.contractFile;
     const metadata = JSON.parse(fs.readFileSync(contractFile).toString());
 
-    const price = ethers.utils.formatUnits(await wallet.provider.getGasPrice(), 'gwei');
-    const options = {gasLimit: 100000, gasPrice: ethers.utils.parseUnits(price, 'gwei')};
-
     const factory = new ethers.ContractFactory(metadata.abi, metadata.bytecode, wallet);
-    const contract = await factory.deploy({});
+
+    // Parse optional args if provided, and feed them into the deploy function
+    const deployArgs = opts.args ? opts.args.split(",") : [];
+    const contract = await factory.deploy(...deployArgs);
     await contract.deployed();
 
     console.log(contract.address);
