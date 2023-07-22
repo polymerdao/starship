@@ -85,7 +85,10 @@ spec:
               cd /relayer-storage
               npm install --save ethers@5 fs commander
               cp /contracts/* .
-              node deploy.js -m "$MNEMONIC" -c Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545"
+              VERIFIER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
+              echo "Verifier address: $VERIFIER_ADDRESS"
+              DISPATCHER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Dispatcher.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545" --args "$VERIFIER_ADDRESS")
+              echo "Dispatcher address: $DISPATCHER_ADDRESS"
           workingDir: /relayer-storage
           volumeMounts:
             - mountPath: /root
