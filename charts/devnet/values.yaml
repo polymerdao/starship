@@ -242,6 +242,17 @@ defaultChains:
     hdPath: m/44'/118'/0'/0/0
     coinType: 118
     repo: https://github.com/umee-network/umee
+  polymer:
+    image: ghcr.io/polymerdao/polymer:v0.0.1-rc4
+    home: /home/heighliner/.polymer
+    binary: polymerd
+    prefix: polymer
+    denom: token
+    coins: 100000000000000token
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/polymerdao/polymerase/
+
   eth:
     prysmCtl:
       image: gcr.io/prysmaticlabs/prysm/cmd/prysmctl
