@@ -137,8 +137,93 @@ spec:
             - mountPath: /configs
               name: relayer-config
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
+        - name: vibc-init-relayer
+          image: {{ $relayer.vibcImage | default $defaultRelayer.vibcImage }}
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: KEYS_CONFIG
+              value: /keys/keys.json
+          command:
+            - sh
+            - "-c"
+            - |
+              RLY_INDEX=${HOSTNAME##*-}
+              echo "Relayer Index: $RLY_INDEX"
+
+              apk add curl jq
+
+              echo "Adding chains"
+              MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)
+              ABI=$(cat /tmp/abi.json)
+
+              echo "Adding polymer chain"
+
+              /vibc-relayer/vibc-relayer chains add --name polymer \
+              --rpc-url http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657 \
+              --gas-price 0.0stake \
+              --account "polymerase1ys2ez49cgnwyz8wgsem3wam7zfkz6302475jqz" --key "$MNEMONIC" --type cosmos
+
+              echo "Adding ethereum chain"
+
+              /vibc-relayer/vibc-relayer chains add --name ethereum \
+              --rpc-url http://prysm.$NAMESPACE.svc.cluster.local:8545 \
+              --gas-price 0.0stake \
+              --account "0x2C8454f3A88070ced57E5B39762E6d983aC718B9" --key "$MNEMONIC" --type evm \
+              --contract-addr "$IBC_CORE_ADDRESS" \
+              --contract-abi "$ABI"
+
+              echo "Setting polling idle time"
+              /vibc-relayer/vibc-relayer config set global.polling-idle-time 5000
+
+              echo "Adding paths"
+              /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum
+
+              /vibc-relayer/vibc-relayer config show
+          volumeMounts:
+            - name: shared
+              mountPath: /tmp
+            - mountPath: /root
+              name: relayer
+            - mountPath: /keys
+              name: keys
+            - mountPath: /configs
+              name: relayer-config
+          resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
       containers:
-        - name: relayer
+        - name: vibc-relayer
+          image: {{ $relayer.vibcImage | default $defaultRelayer.vibcImage }}
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command:
+            - sh
+            - "-c"
+            - |
+              RLY_INDEX=${HOSTNAME##*-}
+              echo "Relayer Index: $RLY_INDEX"
+              /vibc-relayer/vibc-relayer config set global.log-level verbose
+
+              /vibc-relayer/vibc-relayer start
+          resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 0
+          volumeMounts:
+            - name: shared
+              mountPath: /tmp
+            - mountPath: /root
+              name: relayer
+            - mountPath: /configs
+              name: relayer-config
+        - name: eth-relayer
           image: {{ $relayer.image | default $defaultRelayer.image }}
           imagePullPolicy: Always
           env:
@@ -164,8 +249,8 @@ spec:
 
               POLYMER_IP=$(nslookup polymer-genesis.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               POLYMER_IP=$(echo "$POLYMER_IP" | xargs)
-              echo "Prysm IP: $PRYSM_IP"
-              echo "Polymer IP: $POLYMER_IP"
+
+              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)"
 
               # Make the curl request and store the JSON response in a variable
               response=$(curl -s "http://polymer-genesis.$NAMESPACE.svc.cluster.local:1317/polyibc/core/v1/clients/altair-0/client_state")
@@ -179,7 +264,7 @@ spec:
 
                 /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
                 --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
-                --ibc-core-address "$(jq -r '.abi_path' /tmp/altair.json)" \
+                --ibc-core-address "$IBC_CORE_ADDRESS" \
                 --ibc-core-abi /tmp/abi.json \
                 --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
                 --polymer-rpc-addr "http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657" \
@@ -189,7 +274,7 @@ spec:
 
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
               --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
-              --ibc-core-address "0x0359d4C7309d1F171f01630807A68C367a05e1fb" \
+              --ibc-core-address "$IBC_CORE_ADDRESS" \
               --ibc-core-abi /configs/abi.json \
               --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
               --polymer-rpc-addr "http://$POLYMER_IP:26657" \
