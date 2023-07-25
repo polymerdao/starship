@@ -80,16 +80,24 @@ spec:
 
               apk add curl jq nodejs npm
               MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
-              echo "Mnemonic: $MNEMONIC"
 
-              cd /relayer-storage
+              cd /tmp
               npm install --save ethers@5 fs commander
               cp /contracts/* .
+
+              # deploy vibc smart contracts
               VERIFIER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
               echo "Verifier address: $VERIFIER_ADDRESS"
               DISPATCHER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Dispatcher.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545" --args "$VERIFIER_ADDRESS")
               echo "Dispatcher address: $DISPATCHER_ADDRESS"
-          workingDir: /relayer-storage
+
+              # create light client config files for polymer
+              jq -n --arg addr "$DISPATCHER_ADDRESS" '{
+              sc_address: $addr,
+              abi_path: "/tmp/abi.json"
+              }' > altair.json
+              jq '.abi' Dispatcher.json > abi.json
+          workingDir: /tmp
           volumeMounts:
             - mountPath: /root
               name: relayer
@@ -97,8 +105,8 @@ spec:
               name: keys
             - mountPath: /contracts
               name: contracts
-            - name: relayer-storage
-              mountPath: /relayer-storage
+            - name: shared
+              mountPath: /tmp
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
         - name: wait-for-polymer
           image: {{ $relayer.image | default $defaultRelayer.image }}
@@ -159,20 +167,31 @@ spec:
               echo "Prysm IP: $PRYSM_IP"
               echo "Polymer IP: $POLYMER_IP"
 
-              /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
-              --execution-host "http://$PRYSM_IP:8545" \
-              --ibc-core-address "0x0359d4C7309d1F171f01630807A68C367a05e1fb" \
-              --ibc-core-abi /configs/abi.json \
-              --router-host "http://$POLYMER_IP:9090" \
-              --polymer-rpc-addr "http://$POLYMER_IP:26657" \
-              --polymer-account-mnemonic "$MNEMONIC" \
-              --local-dev-net --create-client-mode
+              # Make the curl request and store the JSON response in a variable
+              response=$(curl -s "http://polymer-genesis.$NAMESPACE.svc.cluster.local:1317/polyibc/core/v1/clients/altair-0/client_state")
+              CLIENT_STATE=$(echo "$response" | jq -r '.client_state')
+
+              # Check if the "client_state" key exists in the JSON response
+              if [ "$CLIENT_STATE" != "null" ]; then
+                echo "Altair light client exists"
+              else
+                echo "Altair light client does not exist. Creating one..."
+
+                /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
+                --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
+                --ibc-core-address "$(jq -r '.abi_path' /tmp/altair.json)" \
+                --ibc-core-abi /tmp/abi.json \
+                --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
+                --polymer-rpc-addr "http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657" \
+                --polymer-account-mnemonic "$MNEMONIC" \
+                --local-dev-net --create-client-mode
+              fi
 
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
-              --execution-host "http://$PRYSM_IP:8545" \
+              --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
               --ibc-core-address "0x0359d4C7309d1F171f01630807A68C367a05e1fb" \
               --ibc-core-abi /configs/abi.json \
-              --router-host "http://$POLYMER_IP:9090" \
+              --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
               --polymer-rpc-addr "http://$POLYMER_IP:26657" \
               --polymer-account-mnemonic "$MNEMONIC" \
               --local-dev-net
@@ -182,6 +201,8 @@ spec:
             allowPrivilegeEscalation: false
             runAsUser: 0
           volumeMounts:
+            - name: shared
+              mountPath: /tmp
             - mountPath: /root
               name: relayer
             - mountPath: /keys
@@ -197,19 +218,12 @@ spec:
         - name: contracts
           configMap:
             name: contracts
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared
         - name: relayer-config
           configMap:
             name: "{{ $relayer.type }}-{{ $relayer.name }}"
-  volumeClaimTemplates:
-    - metadata:
-        name: relayer-storage
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: hostpath
-        resources:
-          requests:
-            storage: 10Mi
-
 
 ---
 {{- end }}
