@@ -134,8 +134,6 @@ spec:
           volumeMounts:
             - mountPath: /root
               name: relayer
-            - mountPath: /configs
-              name: relayer-config
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
         - name: vibc-init-relayer
           image: {{ $relayer.vibcImage | default $defaultRelayer.vibcImage }}
@@ -191,8 +189,8 @@ spec:
               name: relayer
             - mountPath: /keys
               name: keys
-            - mountPath: /configs
-              name: relayer-config
+            - mountPath: /scripts
+              name: scripts
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
       containers:
         - name: vibc-relayer
@@ -221,8 +219,6 @@ spec:
               mountPath: /tmp
             - mountPath: /root
               name: relayer
-            - mountPath: /configs
-              name: relayer-config
         - name: eth-relayer
           image: {{ $relayer.image | default $defaultRelayer.image }}
           imagePullPolicy: Always
@@ -292,8 +288,6 @@ spec:
               name: relayer
             - mountPath: /keys
               name: keys
-            - mountPath: /configs
-              name: relayer-config
       volumes:
         - name: relayer
           emptyDir: { }
@@ -306,9 +300,6 @@ spec:
         - name: shared
           persistentVolumeClaim:
             claimName: shared
-        - name: relayer-config
-          configMap:
-            name: "{{ $relayer.type }}-{{ $relayer.name }}"
 
 ---
 {{- end }}
