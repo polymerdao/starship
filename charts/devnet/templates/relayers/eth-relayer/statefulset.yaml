@@ -82,8 +82,8 @@ spec:
               MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
 
               cd /tmp
-              npm install --save ethers@5 fs commander
               cp /contracts/* .
+              npm install
 
               # deploy vibc smart contracts
               VERIFIER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
@@ -173,7 +173,7 @@ spec:
               /vibc-relayer/vibc-relayer chains add --name ethereum \
               --rpc-url http://prysm.$NAMESPACE.svc.cluster.local:8545 \
               --gas-price 0.0stake \
-              --account "0x2C8454f3A88070ced57E5B39762E6d983aC718B9" --key "$MNEMONIC" --type evm \
+              --account "0x2C8454f3A88070ced57E5B39762E6d983aC718B9" --key "0x408890c2b5eba1664bbd33ced41ec0d1322c48b2f65934142e0d8855b552204c" --type evm \
               --contract-addr "$IBC_CORE_ADDRESS" \
               --contract-abi "$ABI"
 
@@ -250,7 +250,7 @@ spec:
               POLYMER_IP=$(nslookup polymer-genesis.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               POLYMER_IP=$(echo "$POLYMER_IP" | xargs)
 
-              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)"
+              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)
 
               # Make the curl request and store the JSON response in a variable
               response=$(curl -s "http://polymer-genesis.$NAMESPACE.svc.cluster.local:1317/polyibc/core/v1/clients/altair-0/client_state")
