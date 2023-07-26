@@ -152,26 +152,40 @@ spec:
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
-              apk add curl jq
+              apk add curl jq nodejs npm bash
+
+              cd /tmp
+              cp /contracts/* .
+              npm install
 
               echo "Adding chains"
-              MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+              MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
               IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)
               ABI=$(cat /tmp/abi.json)
 
               echo "Adding polymer chain"
+              POLYMER_ADDRESS=$(node address.js -m "$MNEMONIC" -p polymer | jq -r ".cosmosAddress")
+              echo "Polymer address: $POLYMER_ADDRESS"
+
+              echo "Transfer tokens to address $POLYMER_ADDRESS"
+              DENOM=token
+              bash -e /scripts/transfer_tokens.sh $POLYMER_ADDRESS $DENOM http://polymer-genesis.$NAMESPACE.svc.cluster.local:8000/credit
 
               /vibc-relayer/vibc-relayer chains add --name polymer \
               --rpc-url http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657 \
               --gas-price 0.0stake \
-              --account "polymerase1ys2ez49cgnwyz8wgsem3wam7zfkz6302475jqz" --key "$MNEMONIC" --type cosmos
+              --account "$POLYMER_ADDRESS" --key "$MNEMONIC" --type cosmos
 
               echo "Adding ethereum chain"
+              ETH_ADDRESS=$(node address.js -m "$MNEMONIC" | jq -r ".ethereumAddress")
+              ETH_PRIV_KEY=$(node address.js -m "$MNEMONIC" | jq -r ".ethereumPrivateKey")
+              echo "Ethereum address: $ETH_ADDRESS"
+              echo "Ethereum private key: $ETH_PRIV_KEY"
 
               /vibc-relayer/vibc-relayer chains add --name ethereum \
               --rpc-url http://prysm.$NAMESPACE.svc.cluster.local:8545 \
               --gas-price 0.0stake \
-              --account "0x2C8454f3A88070ced57E5B39762E6d983aC718B9" --key "0x408890c2b5eba1664bbd33ced41ec0d1322c48b2f65934142e0d8855b552204c" --type evm \
+              --account "$ETH_ADDRESS" --key "$ETH_PRIV_KEY" --type evm \
               --contract-addr "$IBC_CORE_ADDRESS" \
               --contract-abi "$ABI"
 
@@ -180,13 +194,13 @@ spec:
 
               echo "Adding paths"
               /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum
-
-              /vibc-relayer/vibc-relayer config show
           volumeMounts:
             - name: shared
               mountPath: /tmp
             - mountPath: /root
               name: relayer
+            - mountPath: /contracts
+              name: contracts
             - mountPath: /keys
               name: keys
             - mountPath: /scripts
@@ -238,7 +252,7 @@ spec:
 
               apk add curl jq
 
-              MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+              MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
 
               PRYSM_IP=$(nslookup prysm.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               PRYSM_IP=$(echo "$PRYSM_IP" | xargs)
@@ -271,7 +285,7 @@ spec:
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
               --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
               --ibc-core-address "$IBC_CORE_ADDRESS" \
-              --ibc-core-abi /configs/abi.json \
+              --ibc-core-abi /tmp/abi.json \
               --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
               --polymer-rpc-addr "http://$POLYMER_IP:26657" \
               --polymer-account-mnemonic "$MNEMONIC" \
@@ -294,6 +308,9 @@ spec:
         - name: keys
           configMap:
             name: keys
+        - name: scripts
+          configMap:
+            name: setup-scripts
         - name: contracts
           configMap:
             name: contracts
