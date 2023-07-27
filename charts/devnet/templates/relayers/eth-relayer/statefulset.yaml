@@ -62,7 +62,7 @@ spec:
 
               echo "Entered PoS stage"
         - name: deploy-contracts
-          image: {{ $relayer.image | default $defaultRelayer.image }}
+          image: node:alpine
           imagePullPolicy: Always
           env:
             - name: KEYS_CONFIG
@@ -71,6 +71,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: NPM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: npm-token
+                  key: NPM_TOKEN
           command:
             - sh
             - "-c"
@@ -78,25 +83,38 @@ spec:
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
-              apk add curl jq nodejs npm
+              apk update
+              apk add curl jq git bash tar
+
               MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
 
-              cd /tmp
+              cd /tmp && rm -rf *
               cp /contracts/* .
-              npm install
 
+              echo "Installing contract dependencies"
+              cat package.json
+              npm -g install
+
+              echo "Installing vibc-core-smart-contracts dependencies"
+              # any NPM_TOKEN can be used here
+              touch .npmrc
+              echo "@open-ibc:registry=https://npm.pkg.github.com/:_authToken=$NPM_TOKEN" >> .npmrc
+              npm install @open-ibc/vibc-core-smart-contracts
+              ls -la node_modules/@open-ibc/vibc-core-smart-contracts/dist
+
+              echo "Deploying vibc smart contracts"
               # deploy vibc smart contracts
-              VERIFIER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
+              VERIFIER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
               echo "Verifier address: $VERIFIER_ADDRESS"
-              DISPATCHER_ADDRESS=$(node deploy.js -m "$MNEMONIC" -c Dispatcher.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545" --args "$VERIFIER_ADDRESS")
+              DISPATCHER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Dispatcher.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545" --args "$VERIFIER_ADDRESS")
               echo "Dispatcher address: $DISPATCHER_ADDRESS"
 
               # create light client config files for polymer
               jq -n --arg addr "$DISPATCHER_ADDRESS" '{
               sc_address: $addr,
               abi_path: "/tmp/abi.json"
-              }' > altair.json
-              jq '.abi' Dispatcher.json > abi.json
+              }' > /tmp/altair.json
+              jq '.abi' /tmp/Dispatcher.json > /tmp/abi.json
           workingDir: /tmp
           volumeMounts:
             - mountPath: /root
