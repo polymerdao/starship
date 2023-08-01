@@ -439,3 +439,7 @@ registry:
 
 collector:
   enabled: false
+
+sharedVolume:
+  useNfsServer: false
+  storageClassName: hostpath

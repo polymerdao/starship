@@ -8,8 +8,9 @@ spec:
   resources:
     requests:
       storage: 100Mi
-  storageClassName: ""
+  storageClassName: {{ .Values.sharedVolume.storageClassName }}
 ---
+{{- if .Values.sharedVolume.useNfsServer }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -72,3 +73,4 @@ spec:
   nfs:
     server: nfs-server.default.svc.cluster.local
     path: "/"
+{{- end }}
