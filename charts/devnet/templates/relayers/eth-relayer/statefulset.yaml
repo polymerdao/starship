@@ -71,11 +71,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: NPM_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: npm-token
-                  key: NPM_TOKEN
           command:
             - sh
             - "-c"
@@ -92,21 +87,19 @@ spec:
               cp /contracts/* .
 
               echo "Installing contract dependencies"
-              cat package.json
               npm -g install
 
               echo "Installing vibc-core-smart-contracts dependencies"
-              # any NPM_TOKEN can be used here
-              touch .npmrc
-              echo "@open-ibc:registry=https://npm.pkg.github.com/:_authToken=$NPM_TOKEN" >> .npmrc
-              npm install @open-ibc/vibc-core-smart-contracts
-              ls -la node_modules/@open-ibc/vibc-core-smart-contracts/dist
+              npm i @open-ibc/vibc-core-smart-contracts tslib
+              node node_modules/@open-ibc/vibc-core-smart-contracts/dist/index.js .
 
               echo "Deploying vibc smart contracts"
-              # deploy vibc smart contracts
-              VERIFIER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
+              ETH_ADDRESS=$(node address.js -m "$MNEMONIC" | jq -r ".ethereumAddress")
+              echo "Ethereum address: $ETH_ADDRESS"
+              VERIFIER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Verifier.sol/Verifier.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545")
               echo "Verifier address: $VERIFIER_ADDRESS"
-              DISPATCHER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Dispatcher.json -r "http://prysm.$NAMESPACE.svc.cluster.local:8545" --args "$VERIFIER_ADDRESS")
+              DISPATCHER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Dispatcher.sol/Dispatcher.json \
+              -r "http://prysm.$NAMESPACE.svc.cluster.local:8545" --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet." )
               echo "Dispatcher address: $DISPATCHER_ADDRESS"
 
               # create light client config files for polymer
@@ -114,7 +107,7 @@ spec:
               sc_address: $addr,
               abi_path: "/tmp/abi.json"
               }' > /tmp/altair.json
-              jq '.abi' /tmp/Dispatcher.json > /tmp/abi.json
+              jq '.abi' /tmp/Dispatcher.sol/Dispatcher.json > /tmp/abi.json
           workingDir: /tmp
           volumeMounts:
             - mountPath: /root
