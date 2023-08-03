@@ -63,15 +63,6 @@ spec:
             - name: secrets
               mountPath: /etc/secrets
               readOnly: true
-        - name: geth-genesis-init
-          image: {{ $chain.geth.image }}
-          command: ['sh', '-c', "if [ -e /ethereum/.init ]; then exit 0; fi; geth init --datadir=/ethereum/execution /etc/config/genesis.json"]
-          volumeMounts:
-            - name: ethereum
-              mountPath: /ethereum
-            - name: config
-              mountPath: /etc/config
-              readOnly: true
         {{- end }}
         - name: geth-account-init
           image: {{ $chain.geth.image }}
@@ -101,6 +92,10 @@ spec:
               containerPort: 8545
             - name: geth-authrpc
               containerPort: 8551
+            - name: p2p-tcp
+              containerPort: 30303
+            - name: p2p-udp
+              containerPort: 30303
           volumeMounts:
             - name: ethereum
               mountPath: /ethereum
