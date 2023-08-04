@@ -66,6 +66,7 @@ kind: PersistentVolume
 metadata:
   name: nfs-pv
 spec:
+  storageClassName: standard-rwx
   capacity:
     storage: 1Gi
   accessModes:
