@@ -443,3 +443,4 @@ collector:
 sharedVolume:
   useNfsServer: false
   storageClassName: hostpath
+  storage: 100Mi
