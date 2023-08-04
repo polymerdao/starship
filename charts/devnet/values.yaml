@@ -259,7 +259,6 @@ defaultChains:
     genesisStateUrl: https://github.com/eth-clients/merge-testnets/blob/main/sepolia/genesis.ssz
     joinNetwork: false
     prysmCtl:
-      enabled: true
       image: gcr.io/prysmaticlabs/prysm/cmd/prysmctl
       command: ["/app/cmd/prysmctl/prysmctl"]
       args:
