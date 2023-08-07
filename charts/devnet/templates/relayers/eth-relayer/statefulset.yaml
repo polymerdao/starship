@@ -67,6 +67,12 @@ spec:
           env:
             - name: KEYS_CONFIG
               value: /keys/keys.json
+            - name: MNEMONIC
+              valueFrom:
+                secretKeyRef:
+                  optional: true
+                  name: eth-relayer
+                  key: genesis
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -86,7 +92,9 @@ spec:
               apk update
               apk add curl jq git bash tar
 
-              MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+              if [ -z "$MNEMONIC" ]; then
+                MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
+              fi
 
               cd /tmp && rm -rf *
               cp /contracts/* .
@@ -170,6 +178,12 @@ spec:
                   fieldPath: metadata.namespace
             - name: KEYS_CONFIG
               value: /keys/keys.json
+            - name: MNEMONIC
+              valueFrom:
+                secretKeyRef:
+                  optional: true
+                  name: vibc-relayer
+                  key: relayer
           command:
             - sh
             - "-c"
@@ -179,12 +193,15 @@ spec:
 
               apk add curl jq nodejs npm bash
 
+              if [ -z "$MNEMONIC" ]; then
+                MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
+              fi
+
               cd /tmp
               cp /contracts/* .
               npm install
 
               echo "Adding chains"
-              MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
               IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)
               ABI=$(cat /tmp/abi.json)
 
@@ -268,6 +285,12 @@ spec:
                   fieldPath: metadata.namespace
             - name: KEYS_CONFIG
               value: /keys/keys.json
+            - name: MNEMONIC
+              valueFrom:
+                secretKeyRef:
+                  optional: true
+                  name: eth-relayer
+                  key: relayer
           command:
             - sh
             - "-c"
@@ -277,7 +300,9 @@ spec:
 
               apk add curl jq
 
-              MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
+              if [ -z "$MNEMONIC" ]; then
+                MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
+              fi
 
               PRYSM_IP=$(nslookup prysm.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               PRYSM_IP=$(echo "$PRYSM_IP" | xargs)
