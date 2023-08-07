@@ -78,6 +78,11 @@ spec:
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
+              if [ -f /tmp/abi.json ]; then
+                echo "The file /tmp/abi.json exists."
+                exit 0;
+              fi
+
               apk update
               apk add curl jq git bash tar
 
