@@ -82,12 +82,8 @@ spec:
             - "-c"
             - |
               RLY_INDEX=${HOSTNAME##*-}
+              RPC=http://prysm.$NAMESPACE.svc.cluster.local:8545
               echo "Relayer Index: $RLY_INDEX"
-
-              if [ -f /tmp/abi.json ]; then
-                echo "The file /tmp/abi.json exists."
-                exit 0;
-              fi
 
               apk update
               apk add curl jq git bash tar
@@ -96,11 +92,23 @@ spec:
                 MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
               fi
 
-              cd /tmp && rm -rf *
+              cd /tmp
               cp /contracts/* .
 
               echo "Installing contract dependencies"
               npm -g install
+
+              if [ -f /tmp/altair.json ]; then
+                echo "Found altair config file"
+                ETH_ADDRESS=$(jq -r ".sc_address" /tmp/altair.json)
+                node /tmp/existance.js -a $ETH_ADDRESS -r $RPC
+                if [ $? -eq 0 ]; then
+                  echo "Dispatcher contract is already deployed at $ETH_ADDRESS"
+                  exit 0;
+                else
+                  echo "Unable to find a Dispatcher contract at $ETH_ADDRESS"
+                fi
+              fi
 
               echo "Installing vibc-core-smart-contracts dependencies"
               npm i @open-ibc/vibc-core-smart-contracts tslib
@@ -111,12 +119,11 @@ spec:
               echo "Ethereum address: $ETH_ADDRESS"
 
               echo "Balance before deployment"
-              RPC=http://prysm.$NAMESPACE.svc.cluster.local:8545
               echo $(node balance.js -a $ETH_ADDRESS -r $RPC)
 
-              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcDispatcher.sol/IbcDispatcher.json -r $RPC
-              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcReceiver.sol/IbcReceiver.json -r $RPC
-              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcVerifier.sol/ZKMintVerifier.json -r $RPC
+              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcDispatcher.sol/IbcDispatcher.json -r $RPC > /dev/null
+              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcReceiver.sol/IbcReceiver.json -r $RPC > /dev/null
+              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcVerifier.sol/ZKMintVerifier.json -r $RPC > /dev/null
 
               VERIFIER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Verifier.sol/Verifier.json -r $RPC)
               echo "Verifier address: $VERIFIER_ADDRESS"
@@ -329,7 +336,7 @@ spec:
                 --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
                 --polymer-rpc-addr "http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657" \
                 --polymer-account-mnemonic "$MNEMONIC" \
-                --local-dev-net --create-client-mode
+                --sepolia --create-client-mode
               fi
 
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
@@ -339,7 +346,7 @@ spec:
               --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
               --polymer-rpc-addr "http://$POLYMER_IP:26657" \
               --polymer-account-mnemonic "$MNEMONIC" \
-              --local-dev-net
+              --sepolia
 
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
           securityContext:
