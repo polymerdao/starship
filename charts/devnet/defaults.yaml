@@ -193,6 +193,9 @@ defaultChains:
     coinType: 118
     repo: https://github.com/umee-network/umee
   eth:
+    storageClassName: hostpath
+    genesisStateUrl: https://github.com/eth-clients/eth2-networks/raw/master/shared/prater/genesis.ssz
+    joinNetwork: false
     prysmCtl:
       image: gcr.io/prysmaticlabs/prysm/cmd/prysmctl
       command: ["/app/cmd/prysmctl/prysmctl"]
@@ -210,6 +213,7 @@ defaultChains:
         - --http.api=eth,net,web3,debug
         - --http.addr=0.0.0.0
         - --http.vhosts=*
+        - --authrpc.vhosts=*
         - --authrpc.addr=0.0.0.0
         - --authrpc.jwtsecret=/etc/secrets/jwt.hex
         - --datadir=/ethereum/execution
@@ -240,6 +244,7 @@ defaultChains:
         - --contract-deployment-block=0
         - --suggested-fee-recipient=0x123463a4B065722E99115D6c222f267d9cABb524
     validator:
+      enabled: false
       image: gcr.io/prysmaticlabs/prysm/validator:v4.0.7
       command: ["/app/cmd/validator/validator"]
       args:
@@ -252,7 +257,6 @@ defaultChains:
         - --chain-config-file=/etc/config/config.yml
         - --config-file=/etc/config/config.yml
         - --suggested-fee-recipient=0x0C46c2cAFE097b4f7e1BB868B89e5697eE65f934
-    contracts: []
 
 defaultRelayers:
   ts-relayer:
