@@ -10,7 +10,11 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ $chain.name }}-genesis
 spec:
+  {{- if $chain.external }}
+  type: LoadBalancer
+  {{- else }}
   clusterIP: None
+  {{- end }}
   ports:
     {{- range $name, $port := $portMap }}
     - name: {{ $name }}
