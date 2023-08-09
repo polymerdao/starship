@@ -418,6 +418,7 @@ explorer:
   type: ping-pub
   image: ghcr.io/cosmology-tech/starship/ping-pub:6b7b0d096946b6bcd75d15350c7345da0d4576db
   localhost: true
+  external: false
   ports:
     rest: 8080
   # Currently the ping-pub explorer is using alot of memory dues to building the site

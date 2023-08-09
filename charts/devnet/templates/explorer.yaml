@@ -7,7 +7,11 @@ metadata:
   labels:
     app.kubernetes.io/name: explorer
 spec:
+  {{- if .Values.explorer.external }}
+  type: LoadBalancer
+  {{- else }}
   clusterIP: None
+  {{- end }}
   ports:
     - name: http
       port: 8080
@@ -76,6 +80,7 @@ metadata:
   name: explorer
 data:
   {{- range $chain := .Values.chains }}
+  {{- if ne $chain.type "virtual" }}
   {{ $defaultFile := $.Files.Get "defaults.yaml" | fromYaml }}
   {{ $defaultChain := get $defaultFile.defaultChains $chain.type | default dict }}
   {{ $chain = merge $chain $defaultChain }}
@@ -108,6 +113,7 @@ data:
         }
       ]
     }
+  {{- end }}
   {{- end }}
 ---
 {{- end }}
