@@ -31,6 +31,12 @@ spec:
         app.kubernetes.io/version: {{ $.Chart.AppVersion }}
     spec:
       initContainers:
+        - name: init-chmod-data
+          image: busybox
+          command: ['sh', '-c', 'chmod 0777 /tmp']
+          volumeMounts:
+            - name: shared
+              mountPath: /tmp
         - name: wait-for-eth
           image: {{ $relayer.image | default $defaultRelayer.image }}
           imagePullPolicy: Always
@@ -336,7 +342,7 @@ spec:
                 --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
                 --polymer-rpc-addr "http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657" \
                 --polymer-account-mnemonic "$MNEMONIC" \
-                --sepolia --create-client-mode
+                --create-client-mode --{{$relayer.network}}
               fi
 
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
@@ -346,12 +352,9 @@ spec:
               --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
               --polymer-rpc-addr "http://$POLYMER_IP:26657" \
               --polymer-account-mnemonic "$MNEMONIC" \
-              --sepolia
+              --{{$relayer.network}}
 
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsUser: 0
           volumeMounts:
             - name: shared
               mountPath: /tmp
