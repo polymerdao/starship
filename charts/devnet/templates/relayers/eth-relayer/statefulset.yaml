@@ -31,12 +31,6 @@ spec:
         app.kubernetes.io/version: {{ $.Chart.AppVersion }}
     spec:
       initContainers:
-        - name: init-chmod-data
-          image: busybox
-          command: ['sh', '-c', 'chmod 0777 /tmp']
-          volumeMounts:
-            - name: shared
-              mountPath: /tmp
         - name: wait-for-eth
           image: {{ $relayer.image | default $defaultRelayer.image }}
           imagePullPolicy: Always
@@ -98,16 +92,16 @@ spec:
                 MNEMONIC=$(jq -r ".genesis[0].mnemonic" $KEYS_CONFIG)
               fi
 
-              cd /tmp
               cp /contracts/* .
+              ls -la .
 
               echo "Installing contract dependencies"
               npm -g install
 
-              if [ -f /tmp/altair.json ]; then
+              if [ -f /root/altair.json ]; then
                 echo "Found altair config file"
-                ETH_ADDRESS=$(jq -r ".sc_address" /tmp/altair.json)
-                node /tmp/existance.js -a $ETH_ADDRESS -r $RPC
+                ETH_ADDRESS=$(jq -r ".sc_address" /root/altair.json)
+                node /root/existance.js -a $ETH_ADDRESS -r $RPC
                 if [ $? -eq 0 ]; then
                   echo "Dispatcher contract is already deployed at $ETH_ADDRESS"
                   exit 0;
@@ -127,23 +121,23 @@ spec:
               echo "Balance before deployment"
               echo $(node balance.js -a $ETH_ADDRESS -r $RPC)
 
-              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcDispatcher.sol/IbcDispatcher.json -r $RPC > /dev/null
-              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcReceiver.sol/IbcReceiver.json -r $RPC > /dev/null
-              node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/IbcVerifier.sol/ZKMintVerifier.json -r $RPC > /dev/null
+              node /root/deploy.js -m "$MNEMONIC" -c /root/IbcDispatcher.sol/IbcDispatcher.json -r $RPC > /dev/null
+              node /root/deploy.js -m "$MNEMONIC" -c /root/IbcReceiver.sol/IbcReceiver.json -r $RPC > /dev/null
+              node /root/deploy.js -m "$MNEMONIC" -c /root/IbcVerifier.sol/ZKMintVerifier.json -r $RPC > /dev/null
 
-              VERIFIER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Verifier.sol/Verifier.json -r $RPC)
+              VERIFIER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Verifier.sol/Verifier.json -r $RPC)
               echo "Verifier address: $VERIFIER_ADDRESS"
-              DISPATCHER_ADDRESS=$(node /tmp/deploy.js -m "$MNEMONIC" -c /tmp/Dispatcher.sol/Dispatcher.json \
+              DISPATCHER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Dispatcher.sol/Dispatcher.json \
               -r $RPC --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet." )
               echo "Dispatcher address: $DISPATCHER_ADDRESS"
 
               # create light client config files for polymer
               jq -n --arg addr "$DISPATCHER_ADDRESS" '{
               sc_address: $addr,
-              abi_path: "/tmp/abi.json"
-              }' > /tmp/altair.json
-              jq '.abi' /tmp/Dispatcher.sol/Dispatcher.json > /tmp/abi.json
-          workingDir: /tmp
+              abi_path: "/root/abi.json"
+              }' > /root/altair.json
+              jq '.abi' /root/Dispatcher.sol/Dispatcher.json > /root/abi.json
+          workingDir: /root
           volumeMounts:
             - mountPath: /root
               name: relayer
@@ -151,8 +145,6 @@ spec:
               name: keys
             - mountPath: /contracts
               name: contracts
-            - name: shared
-              mountPath: /tmp
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
         - name: wait-for-polymer
           image: {{ $relayer.image | default $defaultRelayer.image }}
@@ -210,13 +202,13 @@ spec:
                 MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
               fi
 
-              cd /tmp
+              cd /root
               cp /contracts/* .
               npm install
 
               echo "Adding chains"
-              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)
-              ABI=$(cat /tmp/abi.json)
+              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /root/altair.json)
+              ABI=$(cat /root/abi.json)
 
               echo "Adding polymer chain"
               POLYMER_ADDRESS=$(node address.js -m "$MNEMONIC" -p polymer | jq -r ".cosmosAddress")
@@ -250,8 +242,6 @@ spec:
               echo "Adding paths"
               /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum
           volumeMounts:
-            - name: shared
-              mountPath: /tmp
             - mountPath: /root
               name: relayer
             - mountPath: /contracts
@@ -284,8 +274,6 @@ spec:
             allowPrivilegeEscalation: false
             runAsUser: 0
           volumeMounts:
-            - name: shared
-              mountPath: /tmp
             - mountPath: /root
               name: relayer
         - name: eth-relayer
@@ -323,7 +311,7 @@ spec:
               POLYMER_IP=$(nslookup polymer-genesis.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
               POLYMER_IP=$(echo "$POLYMER_IP" | xargs)
 
-              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /tmp/altair.json)
+              IBC_CORE_ADDRESS=$(jq -r '.sc_address' /root/altair.json)
 
               # Make the curl request and store the JSON response in a variable
               response=$(curl -s "http://polymer-genesis.$NAMESPACE.svc.cluster.local:1317/polyibc/core/v1/clients/altair-0/client_state")
@@ -338,7 +326,7 @@ spec:
                 /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
                 --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
                 --ibc-core-address "$IBC_CORE_ADDRESS" \
-                --ibc-core-abi /tmp/abi.json \
+                --ibc-core-abi /root/abi.json \
                 --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
                 --polymer-rpc-addr "http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657" \
                 --polymer-account-mnemonic "$MNEMONIC" \
@@ -348,7 +336,7 @@ spec:
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
               --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
               --ibc-core-address "$IBC_CORE_ADDRESS" \
-              --ibc-core-abi /tmp/abi.json \
+              --ibc-core-abi /root/abi.json \
               --router-host "http://polymer-genesis.$NAMESPACE.svc.cluster.local:9090" \
               --polymer-rpc-addr "http://$POLYMER_IP:26657" \
               --polymer-account-mnemonic "$MNEMONIC" \
@@ -356,8 +344,6 @@ spec:
 
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
           volumeMounts:
-            - name: shared
-              mountPath: /tmp
             - mountPath: /root
               name: relayer
             - mountPath: /keys
@@ -374,10 +360,6 @@ spec:
         - name: contracts
           configMap:
             name: contracts
-        - name: shared
-          persistentVolumeClaim:
-            claimName: shared
-
 ---
 {{- end }}
 {{- end }}

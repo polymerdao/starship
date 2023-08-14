@@ -328,7 +328,7 @@ defaultRelayers:
   go-relayer:
     image: ghcr.io/polymerdao/relayer-ibcx:starship-integration
   eth-relayer:
-    image: ghcr.io/polymerdao/eth-relayer:v0.0.1
+    image: ghcr.io/polymerdao/eth-relayer:v0.0.2
     vibcImage: ghcr.io/polymerdao/vibc-relayer:v0.0.1-rc15-dev
     network: local-dev-net
 
@@ -439,8 +439,3 @@ registry:
 
 collector:
   enabled: false
-
-sharedVolume:
-  useNfsServer: false
-  storageClassName: hostpath
-  storage: 100Mi
