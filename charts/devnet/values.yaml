@@ -331,6 +331,8 @@ defaultRelayers:
     image: ghcr.io/polymerdao/eth-relayer:v0.0.2
     vibcImage: ghcr.io/polymerdao/vibc-relayer:v0.0.1-rc15-dev
     network: local-dev-net
+    connections:
+      - polymer:ethereum
 
 chains: []
   # Examples running chains

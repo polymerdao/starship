@@ -241,6 +241,11 @@ spec:
 
               echo "Adding paths"
               /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum
+
+              echo "Adding connections"
+              {{- range $connection := $relayer.connections }}
+              /vibc-relayer/vibc-relayer paths update {{ $connection }} --src-connection connection-0
+              {{- end }}
           volumeMounts:
             - mountPath: /root
               name: relayer
