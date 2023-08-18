@@ -9,7 +9,11 @@ metadata:
   labels:
     app: prysm
 spec:
+  {{- if $chain.external }}
+  type: LoadBalancer
+  {{- else }}
   type: NodePort
+  {{- end }}
   selector:
     app: prysm
   ports:
