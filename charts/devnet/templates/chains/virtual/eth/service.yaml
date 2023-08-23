@@ -22,6 +22,11 @@ spec:
       port: 3500
       targetPort: 3500
       nodePort: 30500
+    - name: beacon-grpc
+      protocol: TCP
+      port: 4000
+      targetPort: 4000
+      nodePort: 30000
     - name: geth-http
       protocol: TCP
       port: 8545

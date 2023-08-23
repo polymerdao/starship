@@ -46,8 +46,6 @@ spec:
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
-              apk add curl jq
-
               while true
               do
                 epoch=$(curl -s http://prysm.$NAMESPACE.svc.cluster.local:3500/eth/v1/beacon/states/head/finality_checkpoints | jq -r '.data.finalized.epoch')
@@ -93,7 +91,6 @@ spec:
               fi
 
               cp /contracts/* .
-              ls -la .
 
               echo "Installing contract dependencies"
               npm -g install
@@ -128,7 +125,7 @@ spec:
               VERIFIER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Verifier.sol/Verifier.json -r $RPC)
               echo "Verifier address: $VERIFIER_ADDRESS"
               DISPATCHER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Dispatcher.sol/Dispatcher.json \
-              -r $RPC --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet." )
+              -r $RPC --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet.,0" )
               echo "Dispatcher address: $DISPATCHER_ADDRESS"
 
               # create light client config files for polymer
@@ -160,8 +157,6 @@ spec:
             - |
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
-
-              apk add curl jq
 
               while [ $(curl -sw '%{http_code}' http://polymer-genesis.$NAMESPACE.svc.cluster.local:8081/node_id -o /dev/null) -ne 200 ]; do
                 echo "Genesis validator does not seem to be ready. Waiting for it to start..."
@@ -304,8 +299,6 @@ spec:
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
-              apk add curl jq
-
               if [ -z "$MNEMONIC" ]; then
                 MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
               fi
@@ -329,6 +322,7 @@ spec:
                 echo "Altair light client does not exist. Creating one..."
 
                 /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
+                --consensus-grpc-host "prysm.$NAMESPACE.svc.cluster.local:4000" \
                 --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
                 --ibc-core-address "$IBC_CORE_ADDRESS" \
                 --ibc-core-abi /root/abi.json \
@@ -339,6 +333,7 @@ spec:
               fi
 
               /relayer/eth-relayer --consensus-host "http://prysm.$NAMESPACE.svc.cluster.local:3500" \
+              --consensus-grpc-host "prysm.$NAMESPACE.svc.cluster.local:4000" \
               --execution-host "http://prysm.$NAMESPACE.svc.cluster.local:8545" \
               --ibc-core-address "$IBC_CORE_ADDRESS" \
               --ibc-core-abi /root/abi.json \

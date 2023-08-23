@@ -194,7 +194,7 @@ defaultChains:
     repo: https://github.com/umee-network/umee
   eth:
     storageClassName: hostpath
-    genesisStateUrl: https://github.com/eth-clients/eth2-networks/raw/master/shared/prater/genesis.ssz
+    genesisStateUrl: https://github.com/eth-clients/merge-testnets/blob/main/sepolia/genesis.ssz
     joinNetwork: false
     prysmCtl:
       image: gcr.io/prysmaticlabs/prysm/cmd/prysmctl
@@ -202,11 +202,14 @@ defaultChains:
       args:
         - testnet
         - generate-genesis
+        - --fork=capella
         - --num-validators=36
         - --output-ssz=/ethereum/consensus/genesis.ssz
         - --chain-config-file=/etc/config/config.yml
+        - --geth-genesis-json-in=/etc/config/genesis.json
+        - --geth-genesis-json-out=/ethereum/consensus/genesis.json
     geth:
-      image: ethereum/client-go:v1.12.0
+      image: ethereum/client-go:v1.12.2
       args:
         - --nodiscover
         - --http
@@ -221,8 +224,6 @@ defaultChains:
         - --unlock=0x123463a4B065722E99115D6c222f267d9cABb524
         - --password=/dev/null
         - --syncmode=full
-        - --mine
-        - --miner.etherbase=0x123463a4b065722e99115d6c222f267d9cabb524
         - --networkid=32382
     beaconChain:
       image: gcr.io/prysmaticlabs/prysm/beacon-chain:v4.0.7
@@ -233,7 +234,6 @@ defaultChains:
         - --genesis-state=/ethereum/consensus/genesis.ssz
         - --bootstrap-node=
         - --chain-config-file=/etc/config/config.yml
-        - --config-file=/etc/config/config.yml
         - --chain-id=32382
         - --rpc-host=0.0.0.0
         - --contract-deployment-block=0
@@ -241,7 +241,6 @@ defaultChains:
         - --execution-endpoint=http://localhost:8551
         - --accept-terms-of-use
         - --jwt-secret=/etc/secrets/jwt.hex
-        - --contract-deployment-block=0
         - --suggested-fee-recipient=0x123463a4B065722E99115D6c222f267d9cABb524
     validator:
       enabled: false
@@ -255,7 +254,6 @@ defaultChains:
         - --interop-start-index=0
         - --force-clear-db
         - --chain-config-file=/etc/config/config.yml
-        - --config-file=/etc/config/config.yml
         - --suggested-fee-recipient=0x0C46c2cAFE097b4f7e1BB868B89e5697eE65f934
 
 defaultRelayers:
