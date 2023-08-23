@@ -93,7 +93,15 @@ spec:
               cp /contracts/* .
 
               echo "Installing contract dependencies"
-              npm -g install
+              npm ci
+
+              RLY_MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
+              RLY_ADDR=$(node address.js -m "$RLY_MNEMONIC" -p polymer | jq -r ".cosmosAddress")
+              echo "Transfer tokens to address $RLY_ADDR"
+
+              # TODO: take DENOM from polymer's config
+              DENOM=token
+              bash -e /scripts/transfer_tokens.sh $RLY_ADDR $DENOM http://polymer-genesis.$NAMESPACE.svc.cluster.local:8000/credit
 
               if [ -f /root/altair.json ]; then
                 echo "Found altair config file"
@@ -142,6 +150,8 @@ spec:
               name: keys
             - mountPath: /contracts
               name: contracts
+            - mountPath: /scripts
+              name: scripts
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
         - name: wait-for-polymer
           image: {{ $relayer.image | default $defaultRelayer.image }}
