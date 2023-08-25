@@ -69,10 +69,9 @@ spec:
               rly chains add --file "/configs/{{ $fullchain.name }}.json" {{ $fullchain.name }}
 
               echo "Restoring {{ $fullchain.name }} keys"
-              rly keys restore {{ $fullchain.name }} default "$MNEMONIC"
+              RLY_ADDR=$(rly keys restore {{ $fullchain.name }} default "$MNEMONIC" | awk 'END{print}')
 
               DENOM="{{ $fullchain.denom }}"
-              RLY_ADDR=$(rly address "{{ $fullchain.name }}" | awk 'END{print}')
               echo "Transfer tokens to address $RLY_ADDR on {{ $fullchain.name }} chain with denom $DENOM"
               bash -e /scripts/transfer_tokens.sh $RLY_ADDR $DENOM http://{{ $fullchain.name }}-genesis.$NAMESPACE.svc.cluster.local:8000/credit
               {{- end }}
