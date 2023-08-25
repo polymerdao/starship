@@ -139,7 +139,7 @@ spec:
             - name: config
               mountPath: /etc/config
               readOnly: true
-          resources: {{- include "getResourceObject" $chain.beaconChain.resources | trim | nindent 12 }}
+          resources: {{- include "getResourceObject" $chain.validator.resources | trim | nindent 12 }}
       {{- end }}
       {{- include "imagePullSecrets" $chain | indent 6 }}
       volumes:
