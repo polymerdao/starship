@@ -118,7 +118,7 @@ spec:
               echo $(node balance.js -a $ETH_ADDRESS -r $RPC)
 
               echo "Deploying IBCDispatcher contract"
-              node /root/deploy.js -m "$MNEMONIC" -c /root/IbcDispatcher.sol/IbcDispatcher.json -r $RPC
+              node /root/deploy.js -m "$MNEMONIC" -c /root/IbcDispatcher.sol/IbcDispatcher.json -r $RPC > /dev/null
 
               echo "Deploying IBCReceiver contract"
               node /root/deploy.js -m "$MNEMONIC" -c /root/IbcReceiver.sol/IbcReceiver.json -r $RPC > /dev/null
