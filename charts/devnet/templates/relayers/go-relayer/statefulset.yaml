@@ -86,14 +86,15 @@ spec:
                 $PATHEND \
                 --file "/configs/path.json"
 
-              echo "Creating a channel"
-              rly transact link $PATHEND --src-port transfer --dst-port transfer -d
-
               echo "Creating a client on $PATHEND"
               rly transact clients $PATHEND
 
               echo "Creating a connection on $PATHEND"
               rly transact connection $PATHEND
+
+              echo "Creating a channel"
+              rly transact channel $PATHEND --src-port transfer --dst-port transfer -d
+
           volumeMounts:
             - mountPath: /home/relayer
               name: relayer
