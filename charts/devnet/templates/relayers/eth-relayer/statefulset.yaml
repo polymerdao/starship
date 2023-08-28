@@ -358,8 +358,6 @@ spec:
             - mountPath: /keys
               name: keys
       volumes:
-        - name: relayer
-          emptyDir: { }
         - name: keys
           configMap:
             name: keys
@@ -369,6 +367,14 @@ spec:
         - name: contracts
           configMap:
             name: contracts
+  volumeClaimTemplates:
+    - metadata:
+        name: relayer
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 100Mi
 ---
 {{- end }}
 {{- end }}
