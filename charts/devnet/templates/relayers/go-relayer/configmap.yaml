@@ -7,6 +7,108 @@ kind: ConfigMap
 metadata:
   name: "{{ $relayer.type }}-{{ $relayer.name }}"
 data:
+  config.yaml: |-
+    global:
+      api-listen-addr: :5183
+      timeout: 10s
+      memo: ""
+      light-cache-size: 20
+    chains:
+      polymer:
+        type: cosmos
+        value:
+          key-directory: /home/relayer/.relayer/keys/polymer
+          key: default
+          chain-id: polymer
+          rpc-addr: tcp://polymer-genesis.default.svc.cluster.local:26657
+          account-prefix: polymer
+          keyring-backend: test
+          gas-adjustment: 1.5
+          gas-prices: 0.025token
+          min-gas-amount: 0
+          max-gas-amount: 0
+          debug: true
+          timeout: 20s
+          block-timeout: ""
+          output-format: json
+          sign-mode: direct
+          extra-codecs: []
+          coin-type: null
+          signing-algorithm: ""
+          broadcast-mode: batch
+          min-loop-duration: 0s
+      wasm:
+        type: cosmos
+        value:
+          key-directory: /home/relayer/.relayer/keys/wasm
+          key: default
+          chain-id: wasm
+          rpc-addr: tcp://wasm-genesis.default.svc.cluster.local:26657
+          account-prefix: wasm
+          keyring-backend: test
+          gas-adjustment: 1.5
+          gas-prices: 0.025stake
+          min-gas-amount: 0
+          max-gas-amount: 0
+          debug: true
+          timeout: 20s
+          block-timeout: ""
+          output-format: json
+          sign-mode: direct
+          extra-codecs: []
+          coin-type: null
+          signing-algorithm: ""
+          broadcast-mode: batch
+          min-loop-duration: 0s
+    paths:
+      polymer-wasm:
+        src:
+          chain-id: polymer
+          client-id: 07-tendermint-1
+          connection-id: connection-2
+        dst:
+          chain-id: wasm
+          client-id: 07-tendermint-0
+          connection-id: connection-0
+        hops: []
+        src-channel-filter:
+          rule: ""
+          channel-list: []
+      virtual-polymer:
+        src:
+          chain-id: polymer
+          client-id: polymer-0
+          connection-id: connection-0
+        dst:
+          chain-id: polymer
+          client-id: altair-0-0
+          connection-id: connection-1
+        hops: []
+        src-channel-filter:
+          rule: ""
+          channel-list: []
+      virtual-wasm:
+        src:
+          chain-id: polymer
+          client-id: polymer-0
+          connection-id: connection-0
+        dst:
+          chain-id: wasm
+          client-id: 07-tendermint-0
+          connection-id: connection-0
+        hops:
+          - chain-id: polymer
+            path-ends:
+              - chain-id: polymer
+                client-id: altair-0-0
+                connection-id: connection-1
+              - chain-id: polymer
+                client-id: 07-tendermint-1
+                connection-id: connection-2
+        src-channel-filter:
+          rule: ""
+          channel-list: []
+
   path.json: |-
     {
       "src": {
@@ -14,10 +116,6 @@ data:
       },
       "dst": {
         "chain-id": "{{ index $relayer.chains 1 }}"
-      },
-      "src-channel-filter": {
-        "rule": null,
-        "channel-list": []
       }
     }
 
