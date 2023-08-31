@@ -53,10 +53,19 @@ spec:
             - bash
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               MNEMONIC=$(jq -r ".relayers[$RLY_INDEX].mnemonic" $KEYS_CONFIG)
 
-              rly config init
+              if [ -f $RELAYER_DIR/config/config.yaml ]; then
+                echo "Relayer already initialized"
+              else
+                echo "Initializing relayer"
+                rly config init
+              fi
+
+              echo "Setting up Config from configmap"
+              cat /configs/config.yaml > $RELAYER_DIR/config/config.yaml
 
               {{- range $i, $chain := $relayer.chains }}
               {{- range $fullchain := $.Values.chains }}
@@ -65,8 +74,8 @@ spec:
               {{ $defaultChain := get $defaultFile.defaultChains $fullchain.type | default dict }}
               {{ $fullchain = merge $fullchain $defaultChain }}
 
-              echo "Adding {{ $fullchain.name }} chain"
-              rly chains add --file "/configs/{{ $fullchain.name }}.json" {{ $fullchain.name }}
+              # echo "Adding {{ $fullchain.name }} chain"
+              # rly chains add --file "/configs/{{ $fullchain.name }}.json" {{ $fullchain.name }} || true
 
               echo "Restoring {{ $fullchain.name }} keys"
               RLY_ADDR=$(rly keys restore {{ $fullchain.name }} default "$MNEMONIC" | awk 'END{print}')
@@ -79,12 +88,6 @@ spec:
               {{- end }}
 
               PATHEND="{{ index $relayer.chains 0 }}-{{ index $relayer.chains 1 }}"
-              echo "Creating path $PATHEND"
-              rly paths add \
-                {{ index $relayer.chains 0 }} \
-                {{ index $relayer.chains 1 }} \
-                $PATHEND \
-                --file "/configs/path.json"
 
               echo "Creating a client on $PATHEND"
               rly transact clients $PATHEND
