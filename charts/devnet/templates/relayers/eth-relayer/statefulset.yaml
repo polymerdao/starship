@@ -43,6 +43,7 @@ spec:
             - sh
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
@@ -79,6 +80,7 @@ spec:
             - sh
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               RPC=http://prysm.$NAMESPACE.svc.cluster.local:8545
               echo "Relayer Index: $RLY_INDEX"
@@ -164,6 +166,7 @@ spec:
             - sh
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
@@ -197,6 +200,7 @@ spec:
             - sh
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
@@ -244,7 +248,7 @@ spec:
               /vibc-relayer/vibc-relayer config set global.polling-idle-time 5000
 
               echo "Adding paths"
-              /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum
+              /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum || true
 
               echo "Adding connections"
               {{- range $connection := $relayer.connections }}
@@ -273,6 +277,7 @@ spec:
             - sh
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
               /vibc-relayer/vibc-relayer config set global.log-level verbose
@@ -305,6 +310,7 @@ spec:
             - sh
             - "-c"
             - |
+              set -e
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
