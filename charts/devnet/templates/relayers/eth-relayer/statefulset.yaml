@@ -111,7 +111,7 @@ spec:
               fi
 
               echo "Installing vibc-core-smart-contracts dependencies"
-              npm i @open-ibc/vibc-core-smart-contracts tslib
+              npm i @open-ibc/vibc-core-smart-contracts@0.0.11 tslib
               node node_modules/@open-ibc/vibc-core-smart-contracts/dist/index.js .
 
               echo "Deploying vibc smart contracts"
@@ -134,7 +134,7 @@ spec:
 
               echo "Deploying Dispatcher contract"
               DISPATCHER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Dispatcher.sol/Dispatcher.json \
-              -r $RPC --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet.,0" )
+              -r $RPC --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet." )
               echo "Dispatcher address: $DISPATCHER_ADDRESS"
 
               # create light client config files for polymer
