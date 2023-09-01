@@ -47,6 +47,8 @@ spec:
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
+              apk add curl jq bash
+
               while true
               do
                 epoch=$(curl -s http://prysm.$NAMESPACE.svc.cluster.local:3500/eth/v1/beacon/states/head/finality_checkpoints | jq -r '.data.finalized.epoch')
@@ -169,6 +171,8 @@ spec:
               set -e
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
+
+              apk add curl jq bash
 
               while [ $(curl -sw '%{http_code}' http://polymer-genesis.$NAMESPACE.svc.cluster.local:8081/node_id -o /dev/null) -ne 200 ]; do
                 echo "Genesis validator does not seem to be ready. Waiting for it to start..."
@@ -311,6 +315,8 @@ spec:
             - "-c"
             - |
               set -e
+              apk add curl jq bash
+
               RLY_INDEX=${HOSTNAME##*-}
               echo "Relayer Index: $RLY_INDEX"
 
