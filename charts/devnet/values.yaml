@@ -263,7 +263,7 @@ defaultRelayers:
     image: ghcr.io/polymerdao/relayer-ibcx:starship-integration
   eth-relayer:
     image: ghcr.io/polymerdao/eth-relayer:v0.0.2
-    vibcImage: ghcr.io/polymerdao/vibc-relayer:v0.0.1-rc15-dev
+    vibcImage: ghcr.io/polymerdao/vibc-relayer:v0.0.2
     network: local-dev-net
     connections:
       - polymer:ethereum
