@@ -53,7 +53,6 @@ spec:
             - bash
             - "-c"
             - |
-              set -e
               RLY_INDEX=${HOSTNAME##*-}
               MNEMONIC=$(jq -r ".relayers[$RLY_INDEX].mnemonic" $KEYS_CONFIG)
 
@@ -64,9 +63,6 @@ spec:
                 rly config init
               fi
 
-              echo "Setting up Config from configmap"
-              cat /configs/config.yaml > $RELAYER_DIR/config/config.yaml
-
               {{- range $i, $chain := $relayer.chains }}
               {{- range $fullchain := $.Values.chains }}
               {{- if eq $fullchain.name $chain }}
@@ -74,8 +70,8 @@ spec:
               {{ $defaultChain := get $defaultFile.defaultChains $fullchain.type | default dict }}
               {{ $fullchain = merge $fullchain $defaultChain }}
 
-              # echo "Adding {{ $fullchain.name }} chain"
-              # rly chains add --file "/configs/{{ $fullchain.name }}.json" {{ $fullchain.name }} || true
+              echo "Adding {{ $fullchain.name }} chain"
+              rly chains add --file "/configs/{{ $fullchain.name }}.json" {{ $fullchain.name }} || true
 
               echo "Restoring {{ $fullchain.name }} keys"
               RLY_ADDR=$(rly keys restore {{ $fullchain.name }} default "$MNEMONIC" | awk 'END{print}')
@@ -88,12 +84,27 @@ spec:
               {{- end }}
 
               PATHEND="{{ index $relayer.chains 0 }}-{{ index $relayer.chains 1 }}"
+              rly paths add \
+                {{ index $relayer.chains 0 }} \
+                {{ index $relayer.chains 1 }} \
+                $PATHEND \
+                --file "/configs/path.json"
+
+              cat $RELAYER_DIR/config/config.yaml
 
               echo "Creating a client on $PATHEND"
               rly transact clients $PATHEND
 
+              sleep 10
+
               echo "Creating a connection on $PATHEND"
               rly transact connection $PATHEND
+
+              echo "Deleting path $PATHEND"
+              rly paths delete $PATHEND
+
+              echo "Setting up a hardcoded config from configmap"
+              cat /configs/config.yaml > $RELAYER_DIR/config/config.yaml
           volumeMounts:
             - mountPath: /home/relayer
               name: relayer
