@@ -192,6 +192,26 @@ defaultChains:
     hdPath: m/44'/118'/0'/0/0
     coinType: 118
     repo: https://github.com/umee-network/umee
+  cheqd:
+    image: ghcr.io/cosmology-tech/starship/cheqd:v1.4.4
+    home: /root/.cheqdnode
+    binary: cheqd-noded
+    prefix: cheqd
+    denom: ncheq
+    coins: 100000000000000ncheq
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/cheqd/cheqd-node
+  neutron:
+    image: ghcr.io/cosmology-tech/starship/neutron:v1.0.4
+    home: /root/.neutrond
+    binary: neutrond
+    prefix: neutron
+    denom: untrn
+    coins: 100000000000000untrn
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/neutron-org/neutron
   eth:
     storageClassName: hostpath
     genesisStateUrl: https://github.com/eth-clients/merge-testnets/blob/main/sepolia/genesis.ssz
@@ -260,6 +280,60 @@ defaultRelayers:
   ts-relayer:
     image: ghcr.io/cosmology-tech/starship/ts-relayer:0.9.0
   hermes:
-    image: ghcr.io/cosmology-tech/starship/hermes:1.5.1
+    image: ghcr.io/cosmology-tech/starship/hermes:1.6.0
+    config:
+      global:
+        log_level: "info"
+      mode:
+        clients:
+          enabled: true
+          refresh: true
+          misbehaviour: true
+        connections:
+          enabled: true
+        channels:
+          enabled: true
+        packets:
+          enabled: true
+          clear_interval: 100
+          clear_on_start: true
+          tx_confirmation: true
+      rest:
+        enabled: true
+        host: "127.0.0.1"
+        port: 3000
+      telemetry:
+        enabled: true
+        host: "127.0.0.1"
+        port: 3001
+      # custom config args
+      event_source:
+        mode: push # allowed values: push, pull. Valid only for 1.6.0+
   go-relayer:
-    image: ghcr.io/polymerdao/relayer-ibcx:starship-integration
+    image: ghcr.io/cosmology-tech/starship/go-relayer:v2.4.1
+  eth-relayer:
+    image: ghcr.io/polymerdao/eth-relayer:v0.0.2
+    vibcImage: ghcr.io/polymerdao/vibc-relayer:v0.0.2
+    network: local-dev-net
+    connections:
+      - polymer:ethereum
+
+defaultScripts:
+  createGenesis:
+    name: create-genesis.sh
+    file: scripts/create-genesis.sh
+  updateGenesis:
+    name: update-genesis.sh
+    file: scripts/update-genesis.sh
+  updateConfig:
+    name: update-config.sh
+    file: scripts/update-config.sh
+  createValidator:
+    name: create-validator.sh
+    file: scripts/create-validator.sh
+  transferTokens:
+    name: transfer-tokens.sh
+    file: scripts/transfer-tokens.sh
+  buildChain:
+    name: build-chain.sh
+    file: scripts/build-chain.sh

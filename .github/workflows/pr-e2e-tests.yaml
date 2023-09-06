@@ -6,23 +6,30 @@ on:
       - created
       - edited
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-pr-e2e-tests
+  cancel-in-progress: true
+
 jobs:
   pr-e2e-test:
     runs-on: ubuntu-latest
     if: github.event.issue.pull_request && contains(github.event.comment.body, '/run_e2e')
 
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-
     strategy:
       matrix:
-        config-file: [ "one-chain.yaml", "two-chain.yaml", "build-chain.yaml", "one-custom-chain.yaml", "multi-validator.yaml", "two-chain-gorelayer.yaml" ]
+        config-file:
+          - "one-chain.yaml"
+          - "two-chain.yaml"
+          - "build-chain.yaml"
+          - "one-custom-chain.yaml"
+          - "multi-validator.yaml"
+          - "two-chain-gorelayer.yaml"
+          - "simapp.yaml"
       fail-fast: true
       max-parallel: 1
 
     env:
-      CONFIG_FILE: "tests/configs/${{ matrix.config-file }}"
+      CONFIG_FILE: "tests/e2e/configs/${{ matrix.config-file }}"
 
     steps:
       - name: Get PR branch

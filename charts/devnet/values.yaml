@@ -22,7 +22,7 @@ resources:
     memory: "100M"
 
 exposer:
-  image: ghcr.io/cosmology-tech/starship/exposer:20230617-eea58bd
+  image: ghcr.io/cosmology-tech/starship/exposer:20230830-b3c162c
   ports:
     rest: 8081
   resources:
@@ -48,225 +48,6 @@ timeouts:
   timeout_precommit: 400ms
   timeout_precommit_delta: 400ms
   timeout_commit: 800ms
-
-# API for interacting with the charts for devnet
-# TODO: need a way to create state reaching jobs, those will run user bash scripts
-# after the chain has been initialized, get the chain to a state and then complete
-defaultChains:
-  osmosis:
-    image: ghcr.io/cosmology-tech/starship/osmosis:v15.1.2-wasmvm1.1.2
-    home: /root/.osmosisd
-    binary: osmosisd
-    prefix: osmo
-    denom: uosmo
-    coins: 100000000000000uosmo,100000000000000uion
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/osmosis-labs/osmosis
-  juno:
-    image: ghcr.io/cosmology-tech/starship/juno:v15.0.0
-    home: /root/.juno
-    binary: junod
-    prefix: juno
-    denom: ujuno
-    coins: 100000000000000ujuno
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/CosmosContracts/juno
-  wasmd:
-    image: anmol1696/wasmd:latest
-    home: /root/.wasmd
-    binary: wasmd
-    prefix: wasm
-    denom: stake
-    coins: 100000000000000ucosm,100000000000000stake
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/CosmWasm/wasmd
-  cosmos:
-    image: ghcr.io/cosmology-tech/starship/gaia:v9.1.1
-    home: /root/.gaia
-    binary: gaiad
-    prefix: cosmos
-    denom: uatom
-    coins: 100000000000000stake,100000000000000uatom
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/cosmos/gaia
-  simapp:
-    image: ghcr.io/cosmology-tech/starship/simapp:v0.47.3
-    home: /root/.simapp
-    binary: simd
-    prefix: cosmos
-    denom: stake
-    coins: 100000000000000stake
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/cosmos/cosmos-sdk/tree/main/simapp
-  persistencecore:
-    image: anmol1696/persistencecore:latest
-    home: /root/.persistenceCore
-    binary: persistenceCore
-    prefix: persistence
-    denom: uxprt
-    coins: 100000000000000uxprt
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/persistenceOne/persistenceCore
-  stride:
-    image: ghcr.io/cosmology-tech/starship/stride:v9.2.1
-    home: /root/.stride
-    binary: strided
-    prefix: stride
-    denom: ustrd
-    coins: 100000000000000ustrd
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/Stride-Labs/stride
-  injective:
-    image: ghcr.io/cosmology-tech/starship/injective:v1.11-1685225746
-    home: /root/.injectived
-    binary: injectived
-    prefix: inj
-    denom: inj
-    coins: 100000000000000inj
-    hdPath: m/44'/60'/0'/0/0
-    coinType: 60
-    repo: https://github.com/InjectiveLabs/injective-chain-releases
-  ics:
-    image: ghcr.io/cosmology-tech/starship/ics:v0.1.0
-    home: /root/.ics
-    binary: interchain-security-pd
-    prefix: cosmos
-    denom: uatom
-    coins: 100000000000000stake,100000000000000uatom
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/cosmos/interchain-security
-  cronos:
-    image: ghcr.io/cosmology-tech/starship/cronos:v1.0.4
-    home: /root/.cronos
-    binary: cronosd
-    prefix: crc
-    denom: basecro
-    coins: 100000000000000basecro
-    hdPath: m/44'/60'/0'/0/0
-    coinType: 60
-    repo: https://github.com/crypto-org-chain/cronos
-  cryptoorgchain:
-    image: ghcr.io/cosmology-tech/starship/cryptoorgchain:v4.1.2
-    home: /root/.cryptoorgchain
-    binary: chain-maind
-    prefix: cro
-    denom: basecro
-    coins: 100000000000000basecro
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/crypto-org-chain/chain-main
-  evmos:
-    image: ghcr.io/cosmology-tech/starship/evmos:v12.1.5
-    home: /root/.evmosd
-    binary: evmosd
-    prefix: evmos
-    denom: aevmos
-    coins: 100000000000000aevmos
-    hdPath: m/44'/60'/0'/0/0
-    coinType: 60
-    repo: https://github.com/evmos/evmos
-  regen:
-    image: ghcr.io/cosmology-tech/starship/regen:v5.0.0
-    home: /root/.regen
-    binary: regen
-    prefix: regen
-    denom: uregen
-    coins: 100000000000000uregen
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/regen-network/regen-ledger
-  quasar:
-    image: ghcr.io/cosmology-tech/starship/quasar:v0.1.1
-    home: /root/.quasarnode
-    binary: quasarnoded
-    prefix: quasar
-    denom: uqsr
-    coins: 100000000000000uqsr
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/quasar-finance/quasar-preview
-  quicksilver:
-    image: ghcr.io/cosmology-tech/starship/quicksilver:v0.6.6
-    home: /root/.quicksilverd
-    binary: quicksilverd
-    prefix: quick
-    denom: uqck
-    coins: 100000000000000uqck
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/ingenuity-build/quicksilver
-  sei:
-    image: ghcr.io/cosmology-tech/starship/sei:2.0.46beta
-    home: /root/.seid
-    binary: seid
-    prefix: sei
-    denom: usei
-    coins: 100000000000000usei
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/sei-protocol/sei-chain
-  sommelier:
-    image: ghcr.io/cosmology-tech/starship/sommelier:v6.0.0
-    home: /root/.sommelier
-    binary: sommelier
-    prefix: somm
-    denom: usomm
-    coins: 100000000000000usomm
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/PeggyJV/sommelier
-  stargaze:
-    image: ghcr.io/cosmology-tech/starship/stargaze:v10.0.1
-    home: /root/.starsd
-    binary: starsd
-    prefix: stars
-    denom: ustars
-    coins: 100000000000000ustars
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/public-awesome/stargaze
-  umee:
-    image: ghcr.io/cosmology-tech/starship/umee:v3.1.0
-    home: /root/.umee
-    binary: umeed
-    prefix: umee
-    denom: uumee
-    coins: 100000000000000uumee
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/umee-network/umee
-  polymer:
-    image: ghcr.io/polymerdao/polymer:v0.0.1-rc4
-    home: /home/heighliner/.polymer
-    binary: polymerd
-    prefix: polymer
-    denom: token
-    coins: 100000000000000token
-    hdPath: m/44'/118'/0'/0/0
-    coinType: 118
-    repo: https://github.com/polymerdao/polymerase/
-
-defaultRelayers:
-  ts-relayer:
-    image: ghcr.io/cosmology-tech/starship/ts-relayer:0.9.0
-  hermes:
-    image: ghcr.io/cosmology-tech/starship/hermes:1.5.1
-  go-relayer:
-    image: ghcr.io/polymerdao/relayer-ibcx:starship-integration
-  eth-relayer:
-    image: ghcr.io/polymerdao/eth-relayer:v0.0.2
-    vibcImage: ghcr.io/polymerdao/vibc-relayer:v0.0.2
-    network: local-dev-net
-    connections:
-      - polymer:ethereum
 
 chains: []
   # Examples running chains
@@ -330,6 +111,45 @@ chains: []
   #   ports:
   #     rpc: 26659
   #     rest: 1319
+  # - name: osmosis-4
+  #   type: osmosis
+  #   numValidators: 2
+  #   # genesis override local to genesis.json
+  #   # this genesis directive is converted to a patch.json file
+  #   # then then `jq -s '.[0] * .[1]' genesis.json patch.json > genesis.json` is run
+  #   genesis:
+  #     auth: ...
+  # - name: osmosis-2
+  #   type: osmosis
+  #   numValidators: 2
+  #   # scripts directive will replace the default scripts with the given scripts
+  #   # please make sure the current scripts are compatible with Starship
+  #   scripts:
+  #     ## createGenesis script will be run before the chain is started
+  #     ## to create the genesis.json file. Can be used to fetch the genesis file too.
+  #     createGenesis:
+  #       file: local/scripts/create-genesis.sh
+  #       data: |- # data is a multiline string injected from --set-file in helm
+  #     ## updateGenesis script will be run on the genesis.json file
+  #     ## run after create-genesis
+  #     updateGenesis:
+  #       file: local/scripts/overwrite-genesis.sh
+  #       data: |- # data is a multiline string injected from --set-file in helm
+  #     updateConfig:
+  #       file: local/scripts/overwrite-config.sh
+  #       data: |- # data is a multiline string injected from --set-file in helm
+  #     ## run as the post-start hook in k8s, to create the validator
+  #     createValidator:
+  #       file: local/scripts/create-validator.sh
+  #       data: |- # data is a multiline string injected from --set-file in helm
+  #     ## transferTokens script will be run to get tokens from the faucet
+  #     transferTokens:
+  #       file: local/scripts/transfer-tokens.sh
+  #       data: |- # data is a multiline string injected from --set-file in helm
+  #     ## buildChain script that can be used for building the chain from source
+  #     buildChain:
+  #       file: local/scripts/build-chain.sh
+  #       data: |- # data is a multiline string injected from --set-file in helm
 
 # TODO: ability to check the srcConnection and destConnection to use
 relayers: []
@@ -346,6 +166,41 @@ relayers: []
 #    chains:
 #      - osmosis-1
 #      - juno-1
+#  - name: osmos-gaia
+#    type: hermes
+#    replicas: 1
+#    chains:
+#      - osmosis-1
+#      - gaia-2
+#    # hermes config.toml file which is read from the yaml file
+#    config:
+#      global:
+#        log_level: "info"
+#      mode:
+#        clients:
+#          enabled: true
+#          refresh: true
+#          misbehaviour: true
+#        connections:
+#          enabled: true
+#        channels:
+#          enabled: true
+#        packets:
+#          enabled: true
+#          clear_interval: 100
+#          clear_on_start: true
+#          tx_confirmation: true
+#      rest:
+#        enabled: true
+#        host: "127.0.0.1"
+#        port: 3000
+#      telemetry:
+#        enabled: true
+#        host: "127.0.0.1"
+#        port: 3001
+#      chains:
+#      - id:
+#        key_name:
 
 explorer:
   # Flag to enable explorer for cluster
@@ -365,13 +220,11 @@ explorer:
 
 registry:
   enabled: false
-  image: ghcr.io/cosmology-tech/starship/registry:20230614-7173db2
+  image: ghcr.io/cosmology-tech/starship/registry:20230905-b18b37a
+  localhost: true
   ports:
     rest: 6060
     grpc: 7070
   resources:
     cpu: "0.2"
     memory: "200M"
-
-collector:
-  enabled: false

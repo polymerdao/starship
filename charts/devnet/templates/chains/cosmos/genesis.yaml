@@ -17,7 +17,7 @@
 
 {{ $image := $chain.image }}
 {{- if $toBuild }}
-{{ $image = "anmol1696/runner:latest" }}
+{{ $image = "ghcr.io/cosmology-tech/starship/runner:latest" }}
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -43,6 +43,7 @@ spec:
         app.kubernetes.io/instance: {{ $chain.type }}
         app.kubernetes.io/type: {{ $chain.name }}
         app.kubernetes.io/name: {{ $chain.name }}-genesis
+        app.kubernetes.io/rawname: {{ $chain.name }}
         app.kubernetes.io/version: {{ $.Chart.AppVersion }}
     spec:
       {{- include "imagePullSecrets" $chain | indent 6 }}
@@ -57,7 +58,7 @@ spec:
         {{- end }}
         {{- if $toBuild }}
         - name: init-build-images
-          image: anmol1696/builder:latest
+          image: ghcr.io/cosmology-tech/starship/builder:latest
           imagePullPolicy: IfNotPresent
           command:
             - bash
@@ -68,12 +69,12 @@ spec:
 
               # Build genesis
               {{- if $upgrade.enabled  }}
-              UPGRADE_NAME=genesis CODE_TAG={{ $chain.upgrade.genesis }} bash -e /scripts/build_chain.sh
+              UPGRADE_NAME=genesis CODE_TAG={{ $chain.upgrade.genesis }} bash -e /scripts/build-chain.sh
               {{- range $upgrade := $chain.upgrade.upgrades }}
-              UPGRADE_NAME={{ $upgrade.name }} CODE_TAG={{ $upgrade.version }} bash -e /scripts/build_chain.sh
+              UPGRADE_NAME={{ $upgrade.name }} CODE_TAG={{ $upgrade.version }} bash -e /scripts/build-chain.sh
               {{- end }}
               {{- else if $build.enabled }}
-              UPGRADE_NAME=genesis CODE_TAG={{ $chain.build.source }} bash -e /scripts/build_chain.sh
+              UPGRADE_NAME=genesis CODE_TAG={{ $chain.build.source }} bash -e /scripts/build-chain.sh
               {{- end }}
           env:
             - name: CODE_REF
@@ -119,7 +120,8 @@ spec:
               fi
 
               echo "Running setup genesis script..."
-              bash -e /scripts/setup_genesis.sh
+              bash -e /scripts/create-genesis.sh
+              bash -e /scripts/update-genesis.sh
           resources: {{- include "devnet.node.resources" ( dict "node" $chain "context" $ ) | trim | nindent 12 }}
           volumeMounts:
             - mountPath: {{ $chain.home }}
@@ -146,7 +148,10 @@ spec:
 
               echo "Running setup config script..."
               export METRICS={{ $chain.metrics }}
-              bash -e /scripts/setup_config.sh
+              {{- if hasKey $chain "genesis" }}
+              jq -s '.[0] * .[1]' $CHAIN_DIR/config/genesis.json /patch/genesis.json > $CHAIN_DIR/config/genesis.json.tmp && mv $CHAIN_DIR/config/genesis.json.tmp $CHAIN_DIR/config/genesis.json
+              {{- end }}
+              bash -e /scripts/update-config.sh
           resources: {{- include "devnet.node.resources" ( dict "node" $chain "context" $ ) | trim | nindent 12 }}
           volumeMounts:
             - mountPath: {{ $chain.home }}
@@ -155,6 +160,10 @@ spec:
               name: addresses
             - mountPath: /scripts
               name: scripts
+            {{- if hasKey $chain "genesis" }}
+            - mountPath: /patch
+              name: patch
+            {{- end }}
       containers:
         - name: validator
           image: {{ $image }}
@@ -162,10 +171,6 @@ spec:
           env:
             {{- include "devnet.defaultEvnVars" $chain | indent 12 }}
             {{- include "devnet.evnVars" $chain | indent 12 }}
-            - name: COLLECTOR_SERVICE
-              value: collector
-            - name: COLLECTOR_PORT
-              value: "8070"
           command:
             - bash
             - "-c"
@@ -183,22 +188,6 @@ spec:
               name: addresses
             - mountPath: /scripts
               name: scripts
-          {{- if $.Values.collector.enabled }}
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                  - bash
-                  - "-c"
-                  - "-e"
-                  - |
-                    VAL_INDEX=${HOSTNAME##*-}
-                    VAL_NAME=$(jq -r ".genesis[$VAL_INDEX].name" /configs/keys.json)
-                    echo "Validator Index: $VAL_INDEX, Key name: $VAL_NAME"
-
-                    COLLECTOR_HOST=http://$COLLECTOR_SERVICE.$NAMESPACE.svc.cluster.local:$COLLECTOR_PORT
-                    VAL_NAME=$VAL_NAME COLLECTOR_HOST=$COLLECTOR_HOST bash -e /scripts/register_snapshots.sh
-          {{- end }}
         - name: exposer
           image: {{ $.Values.exposer.image }}
           imagePullPolicy: Always
@@ -214,7 +203,7 @@ spec:
               value: /configs/keys.json
             - name: EXPOSER_PRIV_VAL_FILE
               value: {{ $chain.home }}/config/priv_validator_key.json
-          command: [ "/app/exposer/exposer" ]
+          command: [ "exposer" ]
           resources: {{- include "getResourceObject" $.Values.exposer.resources | trim | nindent 12 }}
           volumeMounts:
             - mountPath: {{ $chain.home }}
@@ -288,7 +277,12 @@ spec:
             name: keys
         - name: scripts
           configMap:
-            name: setup-scripts
+            name: setup-scripts-{{ $chain.name }}
+        {{- if hasKey $chain "genesis" }}
+        - name: patch
+          configMap:
+            name: patch-{{ $chain.name }}
+        {{- end }}
   {{- if hasKey $chain "storage" }}
   volumeClaimTemplates:
     - metadata:
