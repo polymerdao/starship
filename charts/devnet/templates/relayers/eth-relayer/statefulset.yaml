@@ -292,7 +292,7 @@ spec:
               echo "Relayer Index: $RLY_INDEX"
 
               if [ -z "$MNEMONIC" ]; then
-                MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
+                MNEMONIC=$(jq -r ".relayers[1].mnemonic" $KEYS_CONFIG)
               fi
 
               PRYSM_IP=$(nslookup prysm.$NAMESPACE.svc.cluster.local | awk '/^Address: / { print $2 }')
