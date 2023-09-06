@@ -122,7 +122,9 @@
               "wasmd",
               "simapp",
               "cheqd",
-              "neutron"
+              "neutron",
+              "polymer",
+              "virtual"
             ]
           },
           "numValidators": {
@@ -153,7 +155,40 @@
           "coinType": {
             "type": "number"
           },
+          "metrics": {
+            "type": "boolean"
+          },
           "repo": {
+            "type": "string"
+          },
+          "storage": {
+            "type": "string"
+          },
+          "storageClassName": {
+            "type": "string"
+          },
+          "external": {
+            "type": "boolean"
+          },
+          "joinNetwork": {
+            "type": "boolean"
+          },
+          "geth": {
+            "type": "object"
+          },
+          "beaconChain": {
+            "type": "object"
+          },
+          "prysmCtl": {
+            "type": "object"
+          },
+          "validator": {
+            "type": "object"
+          },
+          "genesisStateUrl": {
+            "type": "string"
+          },
+          "subtype": {
             "type": "string"
           },
           "upgrade": {
@@ -419,10 +454,20 @@
             "enum": [
               "go-relayer",
               "hermes",
-              "ts-relayer"
+              "ts-relayer",
+              "eth-relayer"
             ]
           },
           "image": {
+            "type": "string"
+          },
+          "vibcImage": {
+            "type": "string"
+          },
+          "network": {
+            "type": "string"
+          },
+          "dispatcher": {
             "type": "string"
           },
           "replicas": {
@@ -463,6 +508,9 @@
           "type": "string"
         },
         "localhost": {
+          "type": "boolean"
+        },
+        "external": {
           "type": "boolean"
         },
         "ports": {

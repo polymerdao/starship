@@ -45,7 +45,7 @@ spec:
             - name: KEYS_CONFIG
               value: /keys/keys.json
             - name: RELAYER_DIR
-              value: /root
+              value: /home/relayer/.relayer
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -107,7 +107,7 @@ spec:
               echo "Setting up a hardcoded config from configmap"
               cat /configs/config.yaml > $RELAYER_DIR/config/config.yaml
           volumeMounts:
-            - mountPath: /root
+            - mountPath: /home/relayer
               name: relayer
             - mountPath: /configs
               name: relayer-config
@@ -123,18 +123,18 @@ spec:
           imagePullPolicy: Always
           env:
             - name: RELAYER_DIR
-              value: /root
+              value: /home/relayer/.relayer
           command:
             - bash
             - "-c"
             - |
-              rly start
+              rly start  --home $RELAYER_DIR
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             runAsUser: 0
           volumeMounts:
-            - mountPath: /root
+            - mountPath: /home/relayer
               name: relayer
             - mountPath: /configs
               name: relayer-config

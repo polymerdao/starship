@@ -1,6 +1,7 @@
 {{- range $relayer := .Values.relayers }}
 {{- if eq $relayer.type "eth-relayer" }}
-{{ $defaultRelayer := get $.Values.defaultRelayers $relayer.type }}
+{{ $defaultFile := $.Files.Get "defaults.yaml" | fromYaml }}
+{{ $defaultRelayer := get $defaultFile.defaultRelayers $relayer.type | default dict }}
 {{ $initParams := dict "chains" $relayer.chains "port" $.Values.exposer.ports.rest "context" $ }}
 ---
 apiVersion: apps/v1
@@ -226,9 +227,8 @@ spec:
               /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum || true
 
               echo "Adding connections"
-              {{- range $connection := $relayer.connections }}
-              /vibc-relayer/vibc-relayer paths update {{ $connection }} --src-connection connection-0
-              {{- end }}
+              PATHEND="{{ index $relayer.chains 0 }}-{{ index $relayer.chains 1 }}"
+              /vibc-relayer/vibc-relayer paths update $PATHEND --src-connection connection-0
           volumeMounts:
             - mountPath: /root
               name: relayer

@@ -212,6 +212,16 @@ defaultChains:
     hdPath: m/44'/118'/0'/0/0
     coinType: 118
     repo: https://github.com/neutron-org/neutron
+  polymer:
+    image: ghcr.io/polymerdao/polymer:v0.0.1-rc4
+    home: /home/heighliner/.polymer
+    binary: polymerd
+    prefix: polymer
+    denom: token
+    coins: 100000000000000token
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/polymerdao/polymerase/
   eth:
     storageClassName: hostpath
     genesisStateUrl: https://github.com/eth-clients/merge-testnets/blob/main/sepolia/genesis.ssz
