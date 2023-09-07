@@ -13,7 +13,7 @@ spec:
   {{- if $chain.external }}
   type: LoadBalancer
   {{- else }}
-  clusterIP: None
+  type: ClusterIP
   {{- end }}
   ports:
     {{- range $name, $port := $portMap }}
