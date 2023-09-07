@@ -156,7 +156,7 @@ spec:
             - mountPath: /root
               name: relayer
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
-        - name: vibc-init-relayer
+        - name: init-relayers
           image: {{ $relayer.vibcImage | default $defaultRelayer.vibcImage }}
           imagePullPolicy: Always
           env:
@@ -166,11 +166,17 @@ spec:
                   fieldPath: metadata.namespace
             - name: KEYS_CONFIG
               value: /keys/keys.json
-            - name: MNEMONIC
+            - name: VIBC_RELAYER_MNEMONIC
               valueFrom:
                 secretKeyRef:
                   optional: true
                   name: vibc-relayer
+                  key: relayer
+            - name: ETH_RELAYER_MNEMONIC
+              valueFrom:
+                secretKeyRef:
+                  optional: true
+                  name: eth-relayer
                   key: relayer
           command:
             - sh
@@ -182,34 +188,43 @@ spec:
 
               apk add curl jq nodejs npm bash
 
-              if [ -z "$MNEMONIC" ]; then
-                MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
+              if [ -z "$VIBC_RELAYER_MNEMONIC" ]; then
+                VIBC_RELAYER_MNEMONIC=$(jq -r ".relayers[0].mnemonic" $KEYS_CONFIG)
               fi
+
+              if [ -z "$ETH_RELAYER_MNEMONIC" ]; then
+                ETH_RELAYER_MNEMONIC=$(jq -r ".relayers[1].mnemonic" $KEYS_CONFIG)
+              fi
+
+              echo "VIBC Relayer mnemonic: $VIBC_RELAYER_MNEMONIC"
+              echo "ETH Relayer mnemonic: $ETH_RELAYER_MNEMONIC"
 
               cd /root
               cp /contracts/* .
               npm ci
 
-              echo "Adding chains"
               IBC_CORE_ADDRESS=$(jq -r '.sc_address' /root/altair.json)
               ABI=$(cat /root/abi.json)
 
-              echo "Adding polymer chain"
-              POLYMER_ADDRESS=$(node address.js -m "$MNEMONIC" -p polymer | jq -r ".cosmosAddress")
+              VIBC_POLYMER_ADDRESS=$(node address.js -m "$VIBC_RELAYER_MNEMONIC" -p polymer | jq -r ".cosmosAddress")
+              ETH_POLYMER_ADDRESS=$(node address.js -m "$ETH_RELAYER_MNEMONIC" -p polymer | jq -r ".cosmosAddress")
 
               # TODO: take DENOM from polymer's config
-              echo "Transfer tokens to address $POLYMER_ADDRESS"
+              echo "Transfer tokens to address $VIBC_POLYMER_ADDRESS"
               DENOM=token
-              bash -e /scripts/transfer_tokens.sh $POLYMER_ADDRESS $DENOM http://polymer-genesis.$NAMESPACE.svc.cluster.local:8000/credit
+              bash -e /scripts/transfer-tokens.sh $VIBC_POLYMER_ADDRESS $DENOM http://polymer-genesis.$NAMESPACE.svc.cluster.local:8000/credit
+              bash -e /scripts/transfer-tokens.sh $ETH_POLYMER_ADDRESS $DENOM http://polymer-genesis.$NAMESPACE.svc.cluster.local:8000/credit
 
+              echo "Adding chains"
+              echo "Adding polymer chain"
               /vibc-relayer/vibc-relayer chains add --name polymer \
               --rpc-url http://polymer-genesis.$NAMESPACE.svc.cluster.local:26657 \
               --gas-price 0.0stake \
-              --account "$POLYMER_ADDRESS" --key "$MNEMONIC" --type cosmos
+              --account "$VIBC_POLYMER_ADDRESS" --key "$VIBC_RELAYER_MNEMONIC" --type cosmos
 
               echo "Adding ethereum chain"
-              ETH_ADDRESS=$(node address.js -m "$MNEMONIC" | jq -r ".ethereumAddress")
-              ETH_PRIV_KEY=$(node address.js -m "$MNEMONIC" | jq -r ".ethereumPrivateKey")
+              ETH_ADDRESS=$(node address.js -m "$VIBC_RELAYER_MNEMONIC" | jq -r ".ethereumAddress")
+              ETH_PRIV_KEY=$(node address.js -m "$VIBC_RELAYER_MNEMONIC" | jq -r ".ethereumPrivateKey")
               echo "Ethereum address: $ETH_ADDRESS"
               echo "Ethereum private key: $ETH_PRIV_KEY"
 
