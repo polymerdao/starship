@@ -243,7 +243,7 @@ spec:
 
               echo "Adding connections"
               PATHEND="{{ index $relayer.chains 0 }}-{{ index $relayer.chains 1 }}"
-              /vibc-relayer/vibc-relayer paths update $PATHEND --src-connection connection-0
+              /vibc-relayer/vibc-relayer paths update $PATHEND --src-connection connection-0/connection-2
           volumeMounts:
             - mountPath: /root
               name: relayer
