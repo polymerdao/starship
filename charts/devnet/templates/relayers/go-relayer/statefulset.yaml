@@ -94,7 +94,7 @@ spec:
               cat $RELAYER_DIR/config/config.yaml
 
               echo "Creating a client on $PATHEND"
-              rly transact clients $PATHEND
+              rly transact clients $PATHEND --client-tp 18h
 
               sleep 10
 
@@ -128,7 +128,7 @@ spec:
             - bash
             - "-c"
             - |
-              rly start  --home $RELAYER_DIR
+              rly start  --home $RELAYER_DIR --debug
           resources: {{- include "devnet.node.resources" ( dict "node" $relayer "context" $ ) | trim | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
