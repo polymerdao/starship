@@ -239,7 +239,8 @@ spec:
               /vibc-relayer/vibc-relayer config set global.polling-idle-time 5000
 
               echo "Adding paths"
-              /vibc-relayer/vibc-relayer paths add polymer ethereum polymer-ethereum || true
+              PATHEND="{{ index $relayer.chains 0 }}-{{ index $relayer.chains 1 }}"
+              /vibc-relayer/vibc-relayer paths add {{ index $relayer.chains 0 }} {{ index $relayer.chains 1 }} $PATHEND || true
 
               echo "Adding connections"
               PATHEND="{{ index $relayer.chains 0 }}-{{ index $relayer.chains 1 }}"
