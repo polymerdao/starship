@@ -291,6 +291,17 @@
             },
             "additionalProperties": false
           },
+          "endpoints": {
+             "type": "object",
+	      "properties": {
+		  "rest": {
+		      "type": "string"
+		  },
+		  "rpc": {
+		      "type": "string"
+		  }
+	      }
+	  },
           "ports": {
             "type": "object",
             "properties": {
