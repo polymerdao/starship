@@ -6,11 +6,15 @@ metadata:
   name: explorer
   labels:
     app.kubernetes.io/name: explorer
+  annotations:
+    cloud.google.com/backend-config: '{"ports": {
+    "http": "explorer-hc-config"
+    }}'
 spec:
   {{- if .Values.explorer.external }}
   type: LoadBalancer
   {{- else }}
-  clusterIP: None
+  type: ClusterIP
   {{- end }}
   ports:
     - name: http
@@ -93,11 +97,20 @@ data:
     {
       "chain_name": "{{ $chain.name }}",
       "coingecko": "{{ $chain.type }}",
+      {{- if not $chain.endpoints.rest }}
       "api": "http://{{ $host }}:{{ $chain.ports.rest }}",
+      {{ else }}
+      "api": "$chain.endpoints.rest",
+      {{- end }}
+      {{- if not $chain.endpoints.rpc }}
       "rpc": [
-        "http://{{ $host }}:{{ $chain.ports.rpc }}",
         "http://{{ $host }}:{{ $chain.ports.rpc }}"
       ],
+      {{ else }}
+      "rpc": [
+        "$chain.endpoints.rpc"
+      ],
+      {{- end }}
       "snapshot_provider": "",
       "sdk_version": "0.45.6",
       "coin_type": "{{ $chain.coinType }}",
