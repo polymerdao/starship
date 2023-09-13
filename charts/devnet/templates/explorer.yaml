@@ -64,6 +64,8 @@ spec:
           volumeMounts:
             - mountPath: /home/explorer/chains/mainnet
               name: explorer-configs
+            - mountPath: /home/explorer/chains/testnet
+              name: explorer-configs
           readinessProbe:
             tcpSocket:
               port: 8080
@@ -100,7 +102,7 @@ data:
       {{- if not $chain.endpoints.rest }}
       "api": "http://{{ $host }}:{{ $chain.ports.rest }}",
       {{ else }}
-      "api": "$chain.endpoints.rest",
+      "api": "{{ $chain.endpoints.rest }}",
       {{- end }}
       {{- if not $chain.endpoints.rpc }}
       "rpc": [
@@ -108,7 +110,7 @@ data:
       ],
       {{ else }}
       "rpc": [
-        "$chain.endpoints.rpc"
+        "{{ $chain.endpoints.rpc }}"
       ],
       {{- end }}
       "snapshot_provider": "",
