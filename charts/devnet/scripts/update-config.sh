@@ -17,6 +17,9 @@ sed -i -e 's/index_all_keys = false/index_all_keys = true/g' "$CHAIN_DIR"/config
 sed -i -e 's/seeds = ".*"/seeds = ""/g' "$CHAIN_DIR"/config/config.toml
 sed -i -e 's#cors_allowed_origins = \[\]#cors_allowed_origins = \["*"\]#g' "$CHAIN_DIR"/config/config.toml
 
+# Enable tx indexing for all tags, if not already added
+grep -q index_all_tags "$CHAIN_DIR/config/config.toml" || sed -i -e '/^indexer =/a index_all_tags = true' "$CHAIN_DIR/config/config.toml"
+
 echo "Update client.toml file"
 sed -i -e 's#keyring-backend = "os"#keyring-backend = "test"#g' "$CHAIN_DIR"/config/client.toml
 sed -i -e 's#output = "text"#output = "json"#g' "$CHAIN_DIR"/config/client.toml
