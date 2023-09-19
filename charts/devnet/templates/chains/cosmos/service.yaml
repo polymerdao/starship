@@ -10,9 +10,11 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ $chain.name }}-genesis
   annotations:
+    {{- if eq $chain.platform "gke" }}
     cloud.google.com/backend-config: '{"ports": {
     "rest": "rest-hc-config"
     }}'
+    {{- end }}
 spec:
   {{- if $chain.external }}
   type: LoadBalancer
