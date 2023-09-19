@@ -127,6 +127,12 @@
               "virtual"
             ]
           },
+	  "platform": {
+            "type": "string",
+            "enum": [
+              "gke"
+            ]
+          },
           "numValidators": {
             "type": "number",
             "exclusiveMinimum": 0

@@ -7,9 +7,11 @@ metadata:
   labels:
     app.kubernetes.io/name: explorer
   annotations:
+    {{- if eq .Values.explorer.platform "gke" }}
     cloud.google.com/backend-config: '{"ports": {
     "http": "explorer-hc-config"
     }}'
+    {{- end }}
 spec:
   {{- if .Values.explorer.external }}
   type: LoadBalancer
