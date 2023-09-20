@@ -100,11 +100,47 @@ spec:
 
               if [ -f /root/altair.json ]; then
                 echo "Found altair config file"
-                if [ $DISPATCHER_ADDRESS == $(jq -r ".sc_address" /root/altair.json) ]; then
+                if [ -n "$DISPATCHER_ADDRESS" ] || [ "$DISPATCHER_ADDRESS" == $(jq -r ".sc_address" /root/altair.json) ]; then
                   exit 0;
                 else
                   echo "Dispatcher address in altair config file does not match the one in values.yaml"
                 fi
+              fi
+
+              if [ -z "$DISPATCHER_ADDRESS" ]; then
+                echo "Dispatcher address is empty; deploying contracts"
+
+                cp /contracts/* .
+
+                echo "Installing contract dependencies"
+                npm ci
+
+                echo "Installing vibc-core-smart-contracts dependencies"
+                npm i @open-ibc/vibc-core-smart-contracts@0.0.11 tslib
+                node node_modules/@open-ibc/vibc-core-smart-contracts/dist/index.js .
+
+                echo "Deploying vibc smart contracts"
+                ETH_ADDRESS=$(node address.js -m "$MNEMONIC" | jq -r ".ethereumAddress")
+                echo "Ethereum address: $ETH_ADDRESS"
+                echo $(node balance.js -a $ETH_ADDRESS -r $RPC)
+
+                echo "Deploying IBCDispatcher contract"
+                node /root/deploy.js -m "$MNEMONIC" -c /root/IbcDispatcher.sol/IbcDispatcher.json -r $RPC > /dev/null
+
+                echo "Deploying IBCReceiver contract"
+                node /root/deploy.js -m "$MNEMONIC" -c /root/IbcReceiver.sol/IbcReceiver.json -r $RPC > /dev/null
+
+                echo "Deploying ZKMintVerifier contract"
+                node /root/deploy.js -m "$MNEMONIC" -c /root/IbcVerifier.sol/ZKMintVerifier.json -r $RPC > /dev/null
+
+                echo "Deploying Verifier contract"
+                VERIFIER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Verifier.sol/Verifier.json -r $RPC)
+                echo "Verifier address: $VERIFIER_ADDRESS"
+
+                echo "Deploying Dispatcher contract"
+                DISPATCHER_ADDRESS=$(node /root/deploy.js -m "$MNEMONIC" -c /root/Dispatcher.sol/Dispatcher.json \
+                -r $RPC --args "$VERIFIER_ADDRESS,$ETH_ADDRESS,polyibc.Ethereum-Devnet." )
+                echo "Dispatcher address: $DISPATCHER_ADDRESS"
               fi
 
               echo "Installing vibc-core-smart-contracts dependencies"
@@ -195,9 +231,6 @@ spec:
               if [ -z "$ETH_RELAYER_MNEMONIC" ]; then
                 ETH_RELAYER_MNEMONIC=$(jq -r ".relayers[1].mnemonic" $KEYS_CONFIG)
               fi
-
-              echo "VIBC Relayer mnemonic: $VIBC_RELAYER_MNEMONIC"
-              echo "ETH Relayer mnemonic: $ETH_RELAYER_MNEMONIC"
 
               cd /root
               cp /contracts/* .
